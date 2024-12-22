@@ -41,13 +41,16 @@ class XPSystem(commands.Cog):
             with open("xp_data.json", "w", encoding="utf-8") as file:
                 json.dump(self.xp_data, file, ensure_ascii=False, indent=4)
             print("Données d'XP sauvegardées avec succès !")
+            logging.info("Données d'XP sauvegardées avec succès !")
         except Exception as e:
             print(f"Erreur lors de la sauvegarde : {e}")
+            logging.info(f"Erreur lors de la sauvegarde : {e}")
 
     @tasks.loop(minutes=5)  # Sauvegarde automatique toutes les 5 minutes
     async def save_task(self):
         self.save_xp_data()
         print("Données d'XP sauvegardées automatiquement.")
+        logging.info("Données d'XP sauvegardées automatiquement.")
 
     def cog_unload(self):
         """Appelé lors du déchargement du cog pour sauvegarder les données."""
