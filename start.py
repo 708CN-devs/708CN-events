@@ -16,7 +16,7 @@ token = os.getenv('DISCORD_TOKEN')
 
 class MyBot(commands.Bot):
     async def setup_hook(self):
-        for extension in ['roll','ping','mimir','poke','auto_message']:
+        for extension in ['roll','ping','mimir','poke','auto_message','sun']:
             await self.load_extension(f'cogs.{extension}')
     async def on_ready(self):
         await bot.tree.sync()
