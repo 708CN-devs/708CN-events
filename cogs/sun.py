@@ -12,13 +12,13 @@ class SunGame(commands.Cog):
         """
         Commande /soleil : Affiche un compte à rebours avec l'édition du message.
         """
-        await interaction.response.send_message("Préparez-vous... 🌞", ephemeral=False)
+        await interaction.response.send_message("1", ephemeral=False)
 
         # Récupère le message envoyé en réponse
         message = await interaction.original_response()
 
         # Étapes du compte à rebours
-        steps = ["1", "2", "3", "🌞 SOLEIL ! 🌞"]
+        steps = ["2", "3", "## :sunny: SOLEIL ! :sunny:"]
 
         for step in steps:
             await asyncio.sleep(1)  # Pause de 1 seconde entre chaque étape
