@@ -4,6 +4,10 @@ from discord.ext import commands, tasks
 import random
 import json
 import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
 
 class XPSystem(commands.Cog):
     def __init__(self, bot):
@@ -19,13 +23,17 @@ class XPSystem(commands.Cog):
                 with open("xp_data.json", "r", encoding="utf-8") as file:
                     self.xp_data = json.load(file)
                 print("Données d'XP chargées avec succès !")
+                logging.info("Données d'XP chargées avec succès !")
             except json.JSONDecodeError:
                 print("Erreur : Le fichier JSON est corrompu. Réinitialisation des données.")
+                logging.info("Erreur : Le fichier JSON est corrompu. Réinitialisation des données.")
                 self.xp_data = {}
             except Exception as e:
                 print(f"Erreur lors du chargement : {e}")
+                logging.info(f"Erreur lors du chargement : {e}")
         else:
             print("Aucune sauvegarde d'XP trouvée. Création d'une nouvelle base.")
+            logging.info("Aucune sauvegarde d'XP trouvée. Création d'une nouvelle base.")
 
     def save_xp_data(self):
         """Sauvegarde les données d'XP dans un fichier JSON."""
