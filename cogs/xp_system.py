@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands, tasks
 import random
 import json
@@ -69,12 +70,18 @@ class XPSystem(commands.Cog):
             xp_gained = random.randint(10, 20)  # Gagne entre 10 et 20 XP
             self.add_xp(str(member.id), xp_gained)
 
-    @commands.command(name="xp")
-    async def check_xp(self, ctx):
-        """Commande pour vérifier son propre XP."""
-        user_id = str(ctx.author.id)
+    @app_commands.command(name="xp", description="Affiche ton XP actuel.")
+    async def check_xp(self, interaction: discord.Interaction):
+        """Commande slash pour vérifier son propre XP."""
+        user_id = str(interaction.user.id)
         xp = self.xp_data.get(user_id, {}).get("xp", 0)
-        await ctx.send(f"{ctx.author.mention}, tu as actuellement {xp} XP !")
+        await interaction.response.send_message(
+            f"{interaction.user.mention}, tu as actuellement **{xp} XP** !",
+            ephemeral=True
+        )
+
+    async def setup(self, bot):
+        await bot.add_cog(XPSystem(bot))
 
 async def setup(bot):
     await bot.add_cog(XPSystem(bot))
