@@ -1,86 +1,80 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import random
-import asyncio
-from datetime import datetime, timedelta
+import json
+import os
 
 class XPSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.last_xp_time = {}  # Dictionnaire pour stocker le dernier gain d'XP de chaque utilisateur
-        self.xp_data = {}  # Stockage des XP (à remplacer par un système de base de données si nécessaire)
+        self.xp_data = {}  # Dictionnaire pour stocker les données d'XP des utilisateurs
+        self.load_xp_data()  # Charge les données d'XP sauvegardées
+        self.save_task.start()  # Démarre une tâche d'auto-sauvegarde
 
-    async def give_xp(self, user_id, guild_id):
-        """
-        Attribue un gain d'XP aléatoire à un utilisateur.
-        """
-        min_xp = 5  # Valeur minimale d'XP
-        max_xp = 15  # Valeur maximale d'XP
-        xp_gain = random.randint(min_xp, max_xp)
+    def load_xp_data(self):
+        """Charge les données d'XP depuis un fichier JSON."""
+        if os.path.exists("xp_data.json"):
+            with open("xp_data.json", "r", encoding="utf-8") as file:
+                self.xp_data = json.load(file)
+        else:
+            print("Aucune sauvegarde d'XP trouvée. Création d'une nouvelle base.")
 
-        if guild_id not in self.xp_data:
-            self.xp_data[guild_id] = {}
+    def save_xp_data(self):
+        """Sauvegarde les données d'XP dans un fichier JSON."""
+        with open("xp_data.json", "w", encoding="utf-8") as file:
+            json.dump(self.xp_data, file, ensure_ascii=False, indent=4)
 
-        if user_id not in self.xp_data[guild_id]:
-            self.xp_data[guild_id][user_id] = 0
+    @tasks.loop(minutes=5)  # Sauvegarde automatique toutes les 5 minutes
+    async def save_task(self):
+        self.save_xp_data()
+        print("Données d'XP sauvegardées automatiquement.")
 
-        self.xp_data[guild_id][user_id] += xp_gain
+    def cog_unload(self):
+        """Appelé lors du déchargement du cog pour sauvegarder les données."""
+        self.save_xp_data()
+        self.save_task.cancel()
 
-        print(f"User {user_id} in guild {guild_id} gained {xp_gain} XP. Total: {self.xp_data[guild_id][user_id]} XP.")
-
-    def can_gain_xp(self, user_id):
-        """
-        Vérifie si un utilisateur peut gagner de l'XP (limite d'une fois par minute).
-        """
-        now = datetime.utcnow()
-        if user_id not in self.last_xp_time or now - self.last_xp_time[user_id] >= timedelta(minutes=1):
-            self.last_xp_time[user_id] = now
-            return True
-        return False
+    def add_xp(self, user_id, xp_amount):
+        """Ajoute de l'XP à un utilisateur."""
+        if user_id not in self.xp_data:
+            self.xp_data[user_id] = {"xp": 0}
+        self.xp_data[user_id]["xp"] += xp_amount
+        self.save_xp_data()  # Sauvegarde immédiatement après une mise à jour
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        """
-        Attribue de l'XP lorsqu'un utilisateur envoie un message texte.
-        """
+        """Ajoute de l'XP lorsqu'un utilisateur envoie un message."""
         if message.author.bot:
-            return
+            return  # Ignore les messages des bots
 
-        if self.can_gain_xp(message.author.id):
-            await self.give_xp(message.author.id, message.guild.id)
+        xp_gained = random.randint(5, 15)  # Gagne entre 5 et 15 XP
+        self.add_xp(str(message.author.id), xp_gained)
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
-        """
-        Attribue de l'XP lorsqu'un utilisateur ajoute une réaction.
-        """
+        """Ajoute de l'XP lorsqu'un utilisateur réagit à un message."""
         if user.bot:
-            return
+            return  # Ignore les réactions des bots
 
-        if self.can_gain_xp(user.id):
-            await self.give_xp(user.id, reaction.message.guild.id)
+        xp_gained = random.randint(2, 10)  # Gagne entre 2 et 10 XP
+        self.add_xp(str(user.id), xp_gained)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
-        """
-        Attribue de l'XP lorsqu'un utilisateur rejoint un salon vocal ou change son état vocal.
-        """
+        """Ajoute de l'XP lorsqu'un utilisateur est actif dans un salon vocal."""
         if member.bot:
-            return
+            return  # Ignore les bots
 
-        if self.can_gain_xp(member.id):
-            await self.give_xp(member.id, member.guild.id)
+        if after.channel and not before.channel:
+            xp_gained = random.randint(10, 20)  # Gagne entre 10 et 20 XP
+            self.add_xp(str(member.id), xp_gained)
 
-    @commands.command(name="xp", help="Affiche le total d'XP d'un utilisateur.")
-    async def check_xp(self, ctx, member: discord.Member = None):
-        """
-        Affiche le total d'XP d'un utilisateur dans la guilde actuelle.
-        """
-        member = member or ctx.author  # Si aucun membre spécifié, utilise l'auteur de la commande
-        guild_id = ctx.guild.id
-
-        total_xp = self.xp_data.get(guild_id, {}).get(member.id, 0)
-        await ctx.send(f"{member.mention} a un total de **{total_xp} XP**.")
+    @commands.command(name="xp")
+    async def check_xp(self, ctx):
+        """Commande pour vérifier son propre XP."""
+        user_id = str(ctx.author.id)
+        xp = self.xp_data.get(user_id, {}).get("xp", 0)
+        await ctx.send(f"{ctx.author.mention}, tu as actuellement {xp} XP !")
 
 async def setup(bot):
     await bot.add_cog(XPSystem(bot))
