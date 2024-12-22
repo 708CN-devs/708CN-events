@@ -15,15 +15,26 @@ class XPSystem(commands.Cog):
     def load_xp_data(self):
         """Charge les données d'XP depuis un fichier JSON."""
         if os.path.exists("xp_data.json"):
-            with open("xp_data.json", "r", encoding="utf-8") as file:
-                self.xp_data = json.load(file)
+            try:
+                with open("xp_data.json", "r", encoding="utf-8") as file:
+                    self.xp_data = json.load(file)
+                print("Données d'XP chargées avec succès !")
+            except json.JSONDecodeError:
+                print("Erreur : Le fichier JSON est corrompu. Réinitialisation des données.")
+                self.xp_data = {}
+            except Exception as e:
+                print(f"Erreur lors du chargement : {e}")
         else:
             print("Aucune sauvegarde d'XP trouvée. Création d'une nouvelle base.")
 
     def save_xp_data(self):
         """Sauvegarde les données d'XP dans un fichier JSON."""
-        with open("xp_data.json", "w", encoding="utf-8") as file:
-            json.dump(self.xp_data, file, ensure_ascii=False, indent=4)
+        try:
+            with open("xp_data.json", "w", encoding="utf-8") as file:
+                json.dump(self.xp_data, file, ensure_ascii=False, indent=4)
+            print("Données d'XP sauvegardées avec succès !")
+        except Exception as e:
+            print(f"Erreur lors de la sauvegarde : {e}")
 
     @tasks.loop(minutes=5)  # Sauvegarde automatique toutes les 5 minutes
     async def save_task(self):
