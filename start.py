@@ -20,7 +20,7 @@ class MyBot(commands.Bot):
             logging.info(f'Loaded: cogs.{extension}')
     async def on_ready(self):
         await bot.tree.sync()
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name =f"{bot.command_prefix}help"))
+        """await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name =f"{bot.command_prefix}help"))"""
         logging.info(f'Lancé en tant que {self.user} !')
         logging.info(f"discord.py version: {discord.__version__}")
         
