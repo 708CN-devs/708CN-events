@@ -24,7 +24,7 @@ class Mimir(commands.Cog):
 
         # Envoie le message de souhait de sommeil
         await interaction.response.send_message(
-            f"{pseudo.mention}, il y a {interaction.user.mention} qui te souhaite : **[Bon Mimir !]({selected_gif})** 💤💤💤"
+            f"{pseudo.mention}, il y a {interaction.user.mention} qui te souhaite : **[Bon Mimir !]( {selected_gif} )** 💤💤💤"
 
         )
 
