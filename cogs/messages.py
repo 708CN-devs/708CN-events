@@ -86,4 +86,6 @@ class Message(commands.Cog):
         await interaction.response.send_modal(MessageModal())
 
 async def setup(bot):
+    # Charger les deux cogs
     await bot.add_cog(Rename(bot))
+    await bot.add_cog(Message(bot))
