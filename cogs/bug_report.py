@@ -49,35 +49,46 @@ class BugReport(commands.Cog):
             return
 
         class BugReportModal(discord.ui.Modal, title=f"Signaler un bug: {bug_name}"):
-            bug_type = discord.ui.TextInput(
-                label="Type de bug",
-                placeholder="Ex: Lobby, Mini-jeu, Hub, ...",
-                style=discord.TextStyle.short,
-                required=True,
-            )
-            reproduction_steps = discord.ui.TextInput(
-                label="Comment réaliser ce bug",
-                placeholder="Décrire étape par étape comment reproduire le bug.",
-                style=discord.TextStyle.paragraph,
-                required=True,
-            )
-            detailed_description = discord.ui.TextInput(
-                label="Description détaillée",
-                placeholder="Ajoutez toutes les informations pertinentes concernant ce bug.",
-                style=discord.TextStyle.paragraph,
-                required=True,
-            )
+            def __init__(self, cog, bug_name):
+                super().__init__()
+                self.cog = cog
+                self.bug_name = bug_name
+
+                # Champs de la modal
+                self.bug_type = discord.ui.TextInput(
+                    label="Type de bug",
+                    placeholder="Ex: Lobby, Mini-jeu, Hub, ...",
+                    style=discord.TextStyle.short,
+                    required=True,
+                )
+                self.reproduction_steps = discord.ui.TextInput(
+                    label="Comment réaliser ce bug",
+                    placeholder="Décrire étape par étape comment reproduire le bug.",
+                    style=discord.TextStyle.paragraph,
+                    required=True,
+                )
+                self.detailed_description = discord.ui.TextInput(
+                    label="Description détaillée",
+                    placeholder="Ajoutez toutes les informations pertinentes concernant ce bug.",
+                    style=discord.TextStyle.paragraph,
+                    required=True,
+                )
+
+                # Ajout des champs à la modal
+                self.add_item(self.bug_type)
+                self.add_item(self.reproduction_steps)
+                self.add_item(self.detailed_description)
 
             async def on_submit(self, interaction: discord.Interaction):
                 try:
                     # Envoi dans le salon de rapport
-                    channel = self.bot.get_channel(self.bot.get_cog("BugReport").report_channel_id)
+                    channel = self.cog.bot.get_channel(self.cog.report_channel_id)
                     if not channel:
                         await interaction.response.send_message("Salon de rapport introuvable.", ephemeral=True)
                         return
 
                     embed = discord.Embed(
-                        title=f"Rapport de bug: {bug_name}",
+                        title=f"Rapport de bug: {self.bug_name}",
                         color=discord.Color.red(),
                     )
                     embed.add_field(name="Type de bug", value=self.bug_type.value, inline=False)
@@ -93,7 +104,7 @@ class BugReport(commands.Cog):
                         f"Erreur lors de l'envoi du rapport : {e}", ephemeral=True
                     )
 
-        await interaction.response.send_modal(BugReportModal())
+        await interaction.response.send_modal(BugReportModal(self, bug_name))
 
 async def setup(bot):
     await bot.add_cog(BugReport(bot))
