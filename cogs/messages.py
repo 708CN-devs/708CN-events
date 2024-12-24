@@ -57,5 +57,33 @@ class Rename(commands.Cog):
                 f"Erreur lors de la récupération du message : {e}", ephemeral=True
             )
 
+class Message(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @app_commands.command(name="message", description="Envoyer un message dans le salon via une modal.")
+    async def message(self, interaction: discord.Interaction):
+        """Ouvre une modal pour permettre d'envoyer un message dans le salon."""
+
+        class MessageModal(discord.ui.Modal, title="Envoyer un message"):
+            message_content = discord.ui.TextInput(
+                label="Contenu du message",
+                style=discord.TextStyle.paragraph,
+                placeholder="Écris ici le message que tu veux envoyer...",
+                required=True,
+            )
+
+            async def on_submit(self, interaction: discord.Interaction):
+                try:
+                    await interaction.channel.send(self.message_content.value)
+                    await interaction.response.send_message("Message envoyé avec succès !", ephemeral=True)
+                except discord.HTTPException as e:
+                    await interaction.response.send_message(
+                        f"Erreur lors de l'envoi du message : {e}", ephemeral=True
+                    )
+
+        # Ouvre la modal
+        await interaction.response.send_modal(MessageModal())
+
 async def setup(bot):
     await bot.add_cog(Rename(bot))
