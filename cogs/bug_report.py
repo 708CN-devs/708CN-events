@@ -84,43 +84,35 @@ class BugReport(commands.Cog):
         if payload.user_id == self.bot.user.id:
             return  # Ignore les réactions du bot
 
-        channel = self.bot.get_channel(payload.channel_id)
-        if not channel:
-            return
+        guild = self.bot.get_guild(payload.guild_id)
+        channel = guild.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
 
-        try:
-            message = await channel.fetch_message(payload.message_id)
-            if not message.embeds:
-                return  # Ignore les messages sans embed
+        if not message.embeds:
+            return  # Ignore les messages sans embed
 
-            embed = message.embeds[0]
-            if not embed.title.startswith("Rapport de bug:"):
-                return  # Ignore les messages non liés aux rapports de bugs
+        embed = message.embeds[0]
+        if not embed.title.startswith("Rapport de bug:"):
+            return  # Ignore les messages non liés aux rapports de bugs
 
-            # Map des emojis et leurs préfixes
-            emoji_map = {
-                "✅": "✅",
-                "⚙️": "⚙️",
-                "❓": "❓",
-            }
+        emoji = str(payload.emoji)
+        emoji_map = {
+            "✅": "✅",
+            "⚙️": "⚙️",
+            "❓": "❓",
+        }
 
-            emoji = str(payload.emoji)
-            if emoji in emoji_map:
-                # Supprimer les autres réactions de cet utilisateur
-                for reaction in message.reactions:
-                    if reaction.me:  # Ne traiter que les réactions où le bot a réagi
-                        async for user in reaction.users():
-                            if user.id == payload.user_id and str(reaction.emoji) != emoji:
-                                await message.remove_reaction(reaction.emoji, user)
+        if emoji in emoji_map:
+            # Supprimer les autres réactions utilisateur sauf celle ajoutée
+            for reaction in message.reactions:
+                async for user in reaction.users():
+                    if user.id == payload.user_id and reaction.emoji != emoji:
+                        await message.remove_reaction(reaction.emoji, user)
 
-                # Modifier le titre de l'embed avec la nouvelle réaction
-                new_title = f"[{emoji_map[emoji]}] Rapport de bug: {embed.title.split(':', 1)[1].strip()}"
-                embed.title = new_title
-                await message.edit(embed=embed)
-
-        except discord.HTTPException:
-            pass
-
+            # Modifier le titre de l'embed avec la nouvelle réaction
+            new_title = f"[{emoji}] Rapport de bug: {embed.title.split(':', 1)[1].strip()}"
+            embed.title = new_title
+            await message.edit(embed=embed)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
@@ -128,27 +120,22 @@ class BugReport(commands.Cog):
         if payload.channel_id != self.report_channel_id:
             return  # Ignore les réactions hors du salon de rapport
 
-        channel = self.bot.get_channel(payload.channel_id)
-        if not channel:
-            return
+        guild = self.bot.get_guild(payload.guild_id)
+        channel = guild.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
 
-        try:
-            message = await channel.fetch_message(payload.message_id)
-            if not message.embeds:
-                return  # Ignore les messages sans embed
+        if not message.embeds:
+            return  # Ignore les messages sans embed
 
-            embed = message.embeds[0]
-            if not embed.title.startswith("["):
-                return  # Ignore les messages sans titre formaté
+        embed = message.embeds[0]
+        if not embed.title.startswith("["):
+            return  # Ignore les messages sans titre formaté
 
-            # Réinitialiser le titre si toutes les réactions sont retirées
-            if all(reaction.count == 1 for reaction in message.reactions if reaction.me):
-                original_title = f"Rapport de bug: {embed.title.split(':', 1)[1].strip()}"
-                embed.title = original_title
-                await message.edit(embed=embed)
-
-        except discord.HTTPException:
-            pass
+        # Réinitialiser le titre si toutes les réactions sont retirées
+        if all(reaction.count == 1 for reaction in message.reactions if reaction.me):
+            original_title = f"Rapport de bug: {embed.title.split(':', 1)[1].strip()}"
+            embed.title = original_title
+            await message.edit(embed=embed)
 
 async def setup(bot):
     await bot.add_cog(BugReport(bot))
