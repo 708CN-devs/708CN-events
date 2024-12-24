@@ -8,6 +8,7 @@ class BugReport(commands.Cog):
         self.report_channel_id = 1321162840299540490  # ID de salon persistant
 
     @app_commands.command(name="report-bug", description="Signaler un bug.")
+    @app_commands.describe(bug_name="Nom du bug en quelques mots (exemple : Problème de connexion, Erreur en lobby, etc.)")
     async def report_bug(self, interaction: discord.Interaction, bug_name: str):
         """Ouvre une modal pour signaler un bug."""
         class BugReportModal(discord.ui.Modal, title=f"Signaler un bug: {bug_name}"):
