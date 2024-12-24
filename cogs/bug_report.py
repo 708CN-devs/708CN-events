@@ -77,7 +77,7 @@ class BugReport(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
-        """Modifie le titre du message selon la réaction ajoutée."""
+        """Modifie le titre du message selon la réaction ajoutée et gère les réactions uniques."""
         if payload.channel_id != self.report_channel_id:
             return  # Ignore les réactions hors du salon de rapport
 
@@ -106,20 +106,21 @@ class BugReport(commands.Cog):
 
             emoji = str(payload.emoji)
             if emoji in emoji_map:
-                # Modifier le titre de l'embed
+                # Supprimer les autres réactions de cet utilisateur
+                for reaction in message.reactions:
+                    if reaction.me:  # Ne traiter que les réactions où le bot a réagi
+                        async for user in reaction.users():
+                            if user.id == payload.user_id and str(reaction.emoji) != emoji:
+                                await message.remove_reaction(reaction.emoji, user)
+
+                # Modifier le titre de l'embed avec la nouvelle réaction
                 new_title = f"[{emoji_map[emoji]}] Rapport de bug: {embed.title.split(':', 1)[1].strip()}"
                 embed.title = new_title
                 await message.edit(embed=embed)
 
-                # Supprimer les autres réactions de l'utilisateur
-                for reaction in message.reactions:
-                    if str(reaction.emoji) != emoji and reaction.me:  # Ignore les réactions du bot
-                        async for user in reaction.users():
-                            if user.id == payload.user_id:
-                                await message.remove_reaction(reaction.emoji, user)
-
         except discord.HTTPException:
             pass
+
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload):
