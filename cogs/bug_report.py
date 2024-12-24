@@ -106,9 +106,45 @@ class BugReport(commands.Cog):
             emoji = str(payload.emoji)
             if emoji in emoji_map:
                 # Modifier le titre de l'embed
-                new_title = f"[{emoji_map[emoji]}] {embed.title}"
+                new_title = f"[{emoji_map[emoji]}] Rapport de bug: {embed.title.split(':', 1)[1].strip()}"
                 embed.title = new_title
                 await message.edit(embed=embed)
+
+                # Supprimer les autres réactions de l'utilisateur
+                for reaction in message.reactions:
+                    if str(reaction.emoji) != emoji and reaction.me:  # Ignore les réactions du bot
+                        async for user in reaction.users():
+                            if user.id == payload.user_id:
+                                await message.remove_reaction(reaction.emoji, user)
+
+        except discord.HTTPException:
+            pass
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_remove(self, payload):
+        """Gère les cas où une réaction est retirée."""
+        if payload.channel_id != self.report_channel_id:
+            return  # Ignore les réactions hors du salon de rapport
+
+        channel = self.bot.get_channel(payload.channel_id)
+        if not channel:
+            return
+
+        try:
+            message = await channel.fetch_message(payload.message_id)
+            if not message.embeds:
+                return  # Ignore les messages sans embed
+
+            embed = message.embeds[0]
+            if not embed.title.startswith("["):
+                return  # Ignore les messages sans titre formaté
+
+            # Réinitialiser le titre si toutes les réactions sont retirées
+            if all(reaction.count == 1 for reaction in message.reactions if reaction.me):
+                original_title = f"Rapport de bug: {embed.title.split(':', 1)[1].strip()}"
+                embed.title = original_title
+                await message.edit(embed=embed)
+
         except discord.HTTPException:
             pass
 
