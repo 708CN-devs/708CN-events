@@ -1,53 +1,15 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import json
 
 class BugReport(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.report_channel_id = None
-        self.load_report_channel()
-
-    def load_report_channel(self):
-        """Charge l'ID du salon de rapport depuis un fichier JSON."""
-        try:
-            with open("report_channel.json", "r") as f:
-                data = json.load(f)
-                self.report_channel_id = data.get("channel_id")
-        except FileNotFoundError:
-            self.report_channel_id = None
-
-    def save_report_channel(self, channel_id):
-        """Sauvegarde l'ID du salon de rapport dans un fichier JSON."""
-        with open("report_channel.json", "w") as f:
-            json.dump({"channel_id": channel_id}, f)
-
-    @app_commands.command(name="report-bug-channel", description="Définir le salon pour les rapports de bugs.")
-    async def set_report_channel(self, interaction: discord.Interaction, id: str):
-        """Définit l'ID du salon où les rapports de bugs seront envoyés."""
-        try:
-            channel = self.bot.get_channel(int(id))
-            if not channel:
-                await interaction.response.send_message("Salon introuvable. Vérifiez l'ID.", ephemeral=True)
-                return
-
-            self.save_report_channel(channel.id)
-            self.report_channel_id = channel.id
-            await interaction.response.send_message(f"Salon défini pour les rapports de bugs : {channel.mention}", ephemeral=True)
-        except ValueError:
-            await interaction.response.send_message("ID de salon invalide.", ephemeral=True)
+        self.report_channel_id = 1321162840299540490  # ID de salon persistant
 
     @app_commands.command(name="report-bug", description="Signaler un bug.")
     async def report_bug(self, interaction: discord.Interaction, bug_name: str):
         """Ouvre une modal pour signaler un bug."""
-        if not self.report_channel_id:
-            await interaction.response.send_message(
-                "Le salon de rapport de bugs n'a pas été défini. Utilisez `/report-bug-channel id:` pour le définir.",
-                ephemeral=True,
-            )
-            return
-
         class BugReportModal(discord.ui.Modal, title=f"Signaler un bug: {bug_name}"):
             def __init__(self, cog, bug_name):
                 super().__init__()
@@ -96,7 +58,13 @@ class BugReport(commands.Cog):
                     embed.add_field(name="Description détaillée", value=self.detailed_description.value, inline=False)
                     embed.set_footer(text=f"Signalé par {interaction.user} ({interaction.user.id})")
 
-                    await channel.send(embed=embed)
+                    message = await channel.send(embed=embed)
+
+                    # Réagir au message
+                    await message.add_reaction("✅")  # Bug résolu
+                    await message.add_reaction("⚙️")  # En cours de traitement
+                    await message.add_reaction("❓")  # Autre
+
                     await interaction.response.send_message("Rapport envoyé avec succès !", ephemeral=True)
 
                 except discord.HTTPException as e:
@@ -105,6 +73,44 @@ class BugReport(commands.Cog):
                     )
 
         await interaction.response.send_modal(BugReportModal(self, bug_name))
+
+    @commands.Cog.listener()
+    async def on_raw_reaction_add(self, payload):
+        """Modifie le titre du message selon la réaction ajoutée."""
+        if payload.channel_id != self.report_channel_id:
+            return  # Ignore les réactions hors du salon de rapport
+
+        if payload.user_id == self.bot.user.id:
+            return  # Ignore les réactions du bot
+
+        channel = self.bot.get_channel(payload.channel_id)
+        if not channel:
+            return
+
+        try:
+            message = await channel.fetch_message(payload.message_id)
+            if not message.embeds:
+                return  # Ignore les messages sans embed
+
+            embed = message.embeds[0]
+            if not embed.title.startswith("Rapport de bug:"):
+                return  # Ignore les messages non liés aux rapports de bugs
+
+            # Map des emojis et leurs préfixes
+            emoji_map = {
+                "✅": "✅",
+                "⚙️": "⚙️",
+                "❓": "❓",
+            }
+
+            emoji = str(payload.emoji)
+            if emoji in emoji_map:
+                # Modifier le titre de l'embed
+                new_title = f"[{emoji_map[emoji]}] {embed.title}"
+                embed.title = new_title
+                await message.edit(embed=embed)
+        except discord.HTTPException:
+            pass
 
 async def setup(bot):
     await bot.add_cog(BugReport(bot))
