@@ -56,10 +56,11 @@ class XPSystem(commands.Cog):
             logging.error(f"Erreur lors de la récupération des données d'utilisateur : {e}")
             return {"user_id": user_id, "xp": 0, "level": 1}
 
-    def update_user_data(self, user_id, xp_amount, source):
+    async def update_user_data(self, user_id, xp_amount, source):
         """Mise à jour des données d'XP et de niveau d'un utilisateur."""
         try:
             user_data = self.get_user_data(user_id)
+            old_level = user_data["level"]
             new_xp = user_data["xp"] + xp_amount
             new_level = self.calculate_level(new_xp)
 
@@ -70,6 +71,15 @@ class XPSystem(commands.Cog):
                 upsert=True
             )
             logging.info(f"Ajout de {xp_amount} XP pour l'utilisateur {user_id} (source : {source}). Nouveau niveau : {new_level}.")
+
+            # Envoie un MP si l'utilisateur monte de niveau
+            if new_level > old_level:
+                user = self.bot.get_user(int(user_id))
+                if user:
+                    try:
+                        await user.send(f"Félicitations ! 🎉 Tu viens de passer au niveau {new_level} ! Continue comme ça !")
+                    except discord.Forbidden:
+                        logging.warning(f"Impossible d'envoyer un MP à l'utilisateur {user_id}.")
         except Exception as e:
             logging.error(f"Erreur lors de la mise à jour des données d'XP : {e}")
 
