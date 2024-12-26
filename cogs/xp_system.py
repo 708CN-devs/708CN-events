@@ -81,13 +81,22 @@ class XPSystem(commands.Cog):
     @app_commands.command(name="xp", description="Affiche ton XP actuel.")
     async def check_xp(self, interaction: discord.Interaction):
         """Commande slash pour vérifier son propre XP."""
-        user_id = str(interaction.user.id)
-        user_data = self.get_user_data(user_id)
-        xp = user_data.get("xp", 0)
-        await interaction.response.send_message(
-            f"{interaction.user.mention}, tu as actuellement **{xp} XP** !",
-            ephemeral=True
-        )
+        try:
+            # Préviens Discord que la réponse est différée si nécessaire
+            await interaction.response.defer(ephemeral=True)
+
+            user_id = str(interaction.user.id)
+            user_data = self.get_user_data(user_id)
+            xp = user_data.get("xp", 0)
+
+            # Envoie la réponse finale
+            await interaction.followup.send(
+                f"{interaction.user.mention}, tu as actuellement **{xp} XP** !"
+            )
+        except discord.errors.NotFound:
+            logging.error("L'interaction n'est plus valide ou a expiré.")
+        except Exception as e:
+            logging.error(f"Erreur lors du traitement de la commande /xp : {e}")
 
     def cog_unload(self):
         """Appelé lors du déchargement du cog."""
