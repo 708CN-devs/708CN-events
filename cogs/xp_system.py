@@ -160,7 +160,7 @@ class XPSystem(commands.Cog):
     @app_commands.command(name="xp-add", description="Ajoute de l'XP à un utilisateur.")
     @app_commands.describe(user="L'utilisateur à modifier.", xp_amount="Montant d'XP à ajouter.")
     async def add_xp(self, interaction: discord.Interaction, user: discord.Member, xp_amount: int):
-        """Ajoute de l'XP à un utilisateur via son ID."""
+        """Ajoute de l'XP à un utilisateur."""
         try:
             self.update_user_data(
                 str(user.id), 
