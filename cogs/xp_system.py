@@ -78,13 +78,13 @@ class XPSystem(commands.Cog):
 
                 # Envoi d'un message privé pour notifier l'utilisateur
                 user = self.bot.get_user(int(user_id))
-                if user:
-                    try:
-                        asyncio.create_task(
-                            user.send(f"Félicitations ! 🎉 Tu as atteint le **niveau {new_level}** ! Continue comme ça ! 🚀")
-                        )
-                    except Exception as e:
-                        logging.error(f"Impossible d'envoyer un MP à l'utilisateur {user_id} : {e}")
+                #if user:
+                #    try:
+                #        asyncio.create_task(
+                #            user.send(f"Félicitations ! 🎉 Tu as atteint le **niveau {new_level}** ! Continue comme ça ! 🚀")
+                #        )
+                #    except Exception as e:
+                #        logging.error(f"Impossible d'envoyer un MP à l'utilisateur {user_id} : {e}")
             else:
                 logging.info(f"Ajout de {xp_amount} XP pour l'utilisateur {user_id} (source : {source}). Nouveau niveau : {new_level}.")
 
