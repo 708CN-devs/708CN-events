@@ -168,12 +168,12 @@ class XPSystem(commands.Cog):
             # Envoie la réponse finale
             if user:
                 await interaction.followup.send(
-                    f"L'XP de {target_user.mention} : **{xp} XP** et il est niveau **{level}**. "
+                    f"L'XP de {target_user.mention} : **{xp} XP** et il est niveau **{level}**.\n"
                     f"XP nécessaire pour le niveau suivant : **{xp_next_level - xp} XP**."
                 )
             else:
                 await interaction.followup.send(
-                    f"{interaction.user.mention}, tu as actuellement **{xp} XP** et tu es niveau **{level}**. "
+                    f"{interaction.user.mention}, tu as actuellement **{xp} XP** et tu es niveau **{level}**.\n"
                     f"XP nécessaire pour le niveau suivant : **{xp_next_level - xp} XP**."
                 )
         except discord.errors.NotFound:
