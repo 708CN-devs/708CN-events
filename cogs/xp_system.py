@@ -12,11 +12,12 @@ import math
 # Configuration des logs
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Définition des limites d'XP pour chaque type d'interaction
+# Définition des limites d'XP/LVL pour chaque type d'interaction
 XP_LIMITS = {
-    "message": {"min": 5, "max": 15},  # XP pour les messages
-    "vocal": {"min": 10, "max": 20},   # XP pour les salons vocaux
-    "reaction": {"min": 2, "max": 8}, # XP pour les réactions
+    "message": {"min": 5, "max": 15},   # XP pour les messages
+    "vocal": {"min": 8, "max": 16},     # XP pour les salons vocaux
+    "reaction": {"min": 2, "max": 8},   # XP pour les réactions
+    "levels": {"multiplicator": 0.30},  # Multiplicateur pour lvl-up
 }
 
 class XPSystem(commands.Cog):
@@ -94,7 +95,7 @@ class XPSystem(commands.Cog):
     def calculate_level(self, xp):
         """Calcule le niveau d'un utilisateur en fonction de son XP."""
         # Exemple ajusté : augmenter le taux en utilisant un exposant légèrement inférieur à 0.5
-        level = math.floor(xp ** 0.41)  # Ajuster ici le diviseur et l'exposant
+        level = math.floor(xp ** XP_LIMITS["levels"]["multiplicator"])  # Ajuster ici le diviseur et l'exposant
         return level
 
     @commands.Cog.listener()
