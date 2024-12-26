@@ -75,8 +75,8 @@ class XPSystem(commands.Cog):
 
     def calculate_level(self, xp):
         """Calcule le niveau d'un utilisateur en fonction de son XP."""
-        # Exemple de formule pour calculer le niveau en fonction de l'XP
-        level = math.floor(xp ** 0.5)  # Par exemple, niveau = racine carrée de l'XP
+        # Exemple ajusté : augmenter le taux en utilisant un exposant légèrement inférieur à 0.5
+        level = math.floor((xp / 100) ** 0.6)  # Ajuster ici le diviseur et l'exposant
         return level
 
     @commands.Cog.listener()
