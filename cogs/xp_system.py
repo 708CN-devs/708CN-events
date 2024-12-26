@@ -161,14 +161,20 @@ class XPSystem(commands.Cog):
             xp = user_data.get("xp", 0)
             level = user_data.get("level", 1)
 
+            # Calcul de l'XP nécessaire pour passer au niveau suivant
+            xp_next_level = (level + 1) ** 2.439  # Utilisation de la formule XP = LVL^2.439
+            xp_next_level = math.ceil(xp_next_level)  # Arrondi à l'entier supérieur
+
             # Envoie la réponse finale
             if user:
                 await interaction.followup.send(
-                    f"L'XP de {target_user.mention} : **{xp} XP** et il est niveau **{level}** !"
+                    f"L'XP de {target_user.mention} : **{xp} XP** et il est niveau **{level}**. "
+                    f"XP nécessaire pour le niveau suivant : **{xp_next_level - xp} XP**."
                 )
             else:
                 await interaction.followup.send(
-                    f"{interaction.user.mention}, tu as actuellement **{xp} XP** et tu es niveau **{level}** !"
+                    f"{interaction.user.mention}, tu as actuellement **{xp} XP** et tu es niveau **{level}**. "
+                    f"XP nécessaire pour le niveau suivant : **{xp_next_level - xp} XP**."
                 )
         except discord.errors.NotFound:
             logging.error("L'interaction n'est plus valide ou a expiré.")
