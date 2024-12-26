@@ -1,10 +1,11 @@
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 import random
 import logging
 import os
 from pymongo import MongoClient
+from datetime import datetime, timedelta
 
 # Configuration des logs
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -27,6 +28,12 @@ class XPSystem(commands.Cog):
         except Exception as e:
             logging.error(f"Erreur lors de la connexion à MongoDB : {e}")
             raise
+        
+        # Dictionnaire pour suivre les timers des salons vocaux
+        self.vocal_timers = {}
+        # Dictionnaire pour limiter les gains d'XP par message ou réaction
+        self.last_message_xp = {}
+        self.reaction_tracking = {}
 
     def get_user_data(self, user_id):
         """Récupère les données d'XP d'un utilisateur depuis MongoDB."""
@@ -58,25 +65,69 @@ class XPSystem(commands.Cog):
         """Ajoute de l'XP lorsqu'un utilisateur envoie un message."""
         if message.author.bot:
             return
+        
+        user_id = str(message.author.id)
+        now = datetime.utcnow()
+
+        # Ajout d'un délai minimum entre les gains d'XP pour les messages
+        if user_id in self.last_message_xp and now - self.last_message_xp[user_id] < timedelta(seconds=60):
+            return
+        
+        self.last_message_xp[user_id] = now
         xp_gained = random.randint(5, 15)
-        self.update_user_data(str(message.author.id), xp_gained)
+        self.update_user_data(user_id, xp_gained)
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
         """Ajoute de l'XP lorsqu'un utilisateur réagit à un message."""
         if user.bot:
             return
+        
+        message_id = str(reaction.message.id)
+        user_id = str(user.id)
+
+        # Empêcher de gagner de l'XP plusieurs fois pour la même réaction/message
+        if message_id in self.reaction_tracking and user_id in self.reaction_tracking[message_id]:
+            return
+        
+        if message_id not in self.reaction_tracking:
+            self.reaction_tracking[message_id] = set()
+
+        self.reaction_tracking[message_id].add(user_id)
         xp_gained = random.randint(2, 10)
-        self.update_user_data(str(user.id), xp_gained)
+        self.update_user_data(user_id, xp_gained)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         """Ajoute de l'XP lorsqu'un utilisateur est actif dans un salon vocal."""
+        user_id = str(member.id)
         if member.bot:
             return
+
+        # Si l'utilisateur rejoint un salon vocal
         if after.channel and not before.channel:
-            xp_gained = random.randint(10, 20)
-            self.update_user_data(str(member.id), xp_gained)
+            if user_id not in self.vocal_timers:
+                # Démarrer un timer pour cet utilisateur
+                self.vocal_timers[user_id] = self.start_vocal_timer(member)
+
+        # Si l'utilisateur quitte le salon vocal
+        elif not after.channel and before.channel:
+            if user_id in self.vocal_timers:
+                # Annuler le timer de cet utilisateur
+                self.vocal_timers[user_id].cancel()
+                del self.vocal_timers[user_id]
+
+    def start_vocal_timer(self, member):
+        """Démarre un timer pour ajouter de l'XP toutes les minutes."""
+        async def add_vocal_xp():
+            while True:
+                await discord.utils.sleep_until(datetime.utcnow() + timedelta(seconds=60))
+                if not member.voice or not member.voice.channel:  # Vérifie si l'utilisateur est encore en vocal
+                    break
+                xp_gained = random.randint(10, 20)
+                self.update_user_data(str(member.id), xp_gained)
+
+        return self.bot.loop.create_task(add_vocal_xp())
 
     @app_commands.command(name="xp", description="Affiche ton XP actuel.")
     async def check_xp(self, interaction: discord.Interaction):
