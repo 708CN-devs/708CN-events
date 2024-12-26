@@ -10,6 +10,13 @@ from datetime import datetime, timedelta
 # Configuration des logs
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Définition des limites d'XP pour chaque type d'interaction
+XP_LIMITS = {
+    "message": {"min": 5, "max": 15},  # XP pour les messages
+    "vocal": {"min": 10, "max": 20},   # XP pour les salons vocaux
+    "reaction": {"min": 2, "max": 8}, # XP pour les réactions
+}
+
 class XPSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -74,7 +81,7 @@ class XPSystem(commands.Cog):
             return
         
         self.last_message_xp[user_id] = now
-        xp_gained = random.randint(5, 15)
+        xp_gained = random.randint(XP_LIMITS["message"]["min"], XP_LIMITS["message"]["max"])
         self.update_user_data(user_id, xp_gained, source="Message")
 
     @commands.Cog.listener()
@@ -94,7 +101,7 @@ class XPSystem(commands.Cog):
             self.reaction_tracking[message_id] = set()
 
         self.reaction_tracking[message_id].add(user_id)
-        xp_gained = random.randint(2, 10)
+        xp_gained = random.randint(XP_LIMITS["reaction"]["min"], XP_LIMITS["reaction"]["max"])
         self.update_user_data(user_id, xp_gained, source="Réaction")
 
     @commands.Cog.listener()
@@ -124,7 +131,7 @@ class XPSystem(commands.Cog):
                 await discord.utils.sleep_until(datetime.utcnow() + timedelta(seconds=60))
                 if not member.voice or not member.voice.channel:  # Vérifie si l'utilisateur est encore en vocal
                     break
-                xp_gained = random.randint(10, 20)
+                xp_gained = random.randint(XP_LIMITS["vocal"]["min"], XP_LIMITS["vocal"]["max"])
                 self.update_user_data(str(member.id), xp_gained, source="Vocal")
 
         return self.bot.loop.create_task(add_vocal_xp())
