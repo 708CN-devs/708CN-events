@@ -6,6 +6,7 @@ import logging
 import os
 from pymongo import MongoClient
 from datetime import datetime, timedelta
+import math
 
 # Configuration des logs
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -43,29 +44,40 @@ class XPSystem(commands.Cog):
         self.reaction_tracking = {}
 
     def get_user_data(self, user_id):
-        """Récupère les données d'XP d'un utilisateur depuis MongoDB."""
+        """Récupère les données d'XP et de niveau d'un utilisateur depuis MongoDB."""
         try:
             user_data = self.collection.find_one({"user_id": user_id})
             if not user_data:
-                user_data = {"user_id": user_id, "xp": 0}
+                user_data = {"user_id": user_id, "xp": 0, "level": 1}
                 self.collection.insert_one(user_data)
                 logging.info(f"Création de données pour l'utilisateur {user_id}.")
             return user_data
         except Exception as e:
             logging.error(f"Erreur lors de la récupération des données d'utilisateur : {e}")
-            return {"user_id": user_id, "xp": 0}
+            return {"user_id": user_id, "xp": 0, "level": 1}
 
     def update_user_data(self, user_id, xp_amount, source):
-        """Mise à jour des données d'XP d'un utilisateur."""
+        """Mise à jour des données d'XP et de niveau d'un utilisateur."""
         try:
+            user_data = self.get_user_data(user_id)
+            new_xp = user_data["xp"] + xp_amount
+            new_level = self.calculate_level(new_xp)
+
+            # Mise à jour des données d'XP et de niveau
             self.collection.update_one(
                 {"user_id": user_id},
-                {"$inc": {"xp": xp_amount}},
+                {"$set": {"xp": new_xp, "level": new_level}},
                 upsert=True
             )
-            logging.info(f"Ajout de {xp_amount} XP pour l'utilisateur {user_id} (source : {source}).")
+            logging.info(f"Ajout de {xp_amount} XP pour l'utilisateur {user_id} (source : {source}). Nouveau niveau : {new_level}.")
         except Exception as e:
             logging.error(f"Erreur lors de la mise à jour des données d'XP : {e}")
+
+    def calculate_level(self, xp):
+        """Calcule le niveau d'un utilisateur en fonction de son XP."""
+        # Exemple de formule pour calculer le niveau en fonction de l'XP
+        level = math.floor(math.sqrt(xp))  # Par exemple, niveau = racine carrée de l'XP
+        return level
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -136,9 +148,9 @@ class XPSystem(commands.Cog):
 
         return self.bot.loop.create_task(add_vocal_xp())
 
-    @app_commands.command(name="xp", description="Affiche ton XP actuel.")
+    @app_commands.command(name="xp", description="Affiche ton XP et ton niveau actuel.")
     async def check_xp(self, interaction: discord.Interaction):
-        """Commande slash pour vérifier son propre XP."""
+        """Commande slash pour vérifier son propre XP et niveau."""
         try:
             # Préviens Discord que la réponse est différée si nécessaire
             await interaction.response.defer(ephemeral=True)
@@ -146,10 +158,11 @@ class XPSystem(commands.Cog):
             user_id = str(interaction.user.id)
             user_data = self.get_user_data(user_id)
             xp = user_data.get("xp", 0)
+            level = user_data.get("level", 1)
 
             # Envoie la réponse finale
             await interaction.followup.send(
-                f"{interaction.user.mention}, tu as actuellement **{xp} XP** !"
+                f"{interaction.user.mention}, tu as actuellement **{xp} XP** et tu es niveau **{level}** !"
             )
         except discord.errors.NotFound:
             logging.error("L'interaction n'est plus valide ou a expiré.")
