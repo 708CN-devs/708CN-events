@@ -157,27 +157,35 @@ class XPSystem(commands.Cog):
         except Exception as e:
             logging.error(f"Erreur lors de la fermeture de MongoDB : {e}")
 
-    @app_commands.command(name="xp-add", description="Ajoute de l'XP à un utilisateur via son ID.")
-    @app_commands.describe(user_id="L'ID de l'utilisateur à modifier.", xp_amount="Montant d'XP à ajouter.")
-    async def add_xp(self, interaction: discord.Interaction, user_id: str, xp_amount: int):
+    @app_commands.command(name="xp-add", description="Ajoute de l'XP à un utilisateur.")
+    @app_commands.describe(user="L'utilisateur à modifier.", xp_amount="Montant d'XP à ajouter.")
+    async def add_xp(self, interaction: discord.Interaction, user: discord.Member, xp_amount: int):
         """Ajoute de l'XP à un utilisateur via son ID."""
         try:
-            self.update_user_data(user_id, xp_amount, source="Manuel")
+            self.update_user_data(
+                str(user.id), 
+                xp_amount, 
+                source=f"Manuel (par {interaction.user.display_name})"
+            )
             await interaction.response.send_message(
-                f"Ajout de {xp_amount} XP à l'utilisateur avec l'ID {user_id}.", ephemeral=True
+                f"Ajout de {xp_amount} XP à {user.mention} (par {interaction.user.mention}).", ephemeral=True
             )
         except Exception as e:
             logging.error(f"Erreur lors de l'ajout d'XP : {e}")
             await interaction.response.send_message("Une erreur est survenue lors de l'ajout d'XP.", ephemeral=True)
 
-    @app_commands.command(name="xp-remove", description="Retire de l'XP à un utilisateur via son ID.")
-    @app_commands.describe(user_id="L'ID de l'utilisateur à modifier.", xp_amount="Montant d'XP à retirer.")
-    async def remove_xp(self, interaction: discord.Interaction, user_id: str, xp_amount: int):
-        """Retire de l'XP à un utilisateur via son ID."""
+    @app_commands.command(name="xp-remove", description="Retire de l'XP à un utilisateur.")
+    @app_commands.describe(user="L'utilisateur à modifier.", xp_amount="Montant d'XP à retirer.")
+    async def remove_xp(self, interaction: discord.Interaction, user: discord.Member, xp_amount: int):
+        """Retire de l'XP à un utilisateur."""
         try:
-            self.update_user_data(user_id, -xp_amount, source="Manuel")
+            self.update_user_data(
+                str(user.id), 
+                -xp_amount, 
+                source=f"Manuel (par {interaction.user.display_name})"
+            )
             await interaction.response.send_message(
-                f"Retrait de {xp_amount} XP à l'utilisateur avec l'ID {user_id}.", ephemeral=True
+                f"Retrait de {xp_amount} XP à {user.mention} (par {interaction.user.mention}).", ephemeral=True
             )
         except Exception as e:
             logging.error(f"Erreur lors du retrait d'XP : {e}")
