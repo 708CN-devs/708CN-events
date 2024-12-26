@@ -1,109 +1,101 @@
 import discord
 from discord import app_commands
-from discord.ext import commands, tasks
+from discord.ext import commands
 import random
-import json
-import os
 import logging
+import os
+from pymongo import MongoClient
 
-logging.basicConfig(level=logging.INFO)
-
+# Configuration des logs
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class XPSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.xp_data = {}  # Dictionnaire pour stocker les données d'XP des utilisateurs
-        self.load_xp_data()  # Charge les données d'XP sauvegardées
-        self.save_task.start()  # Démarre une tâche d'auto-sauvegarde
 
-    def load_xp_data(self):
-        """Charge les données d'XP depuis un fichier JSON."""
-        if os.path.exists("xp_data.json"):
-            try:
-                with open("xp_data.json", "r", encoding="utf-8") as file:
-                    self.xp_data = json.load(file)
-                print("Données d'XP chargées avec succès !")
-                logging.info("Données d'XP chargées avec succès !")
-            except json.JSONDecodeError:
-                print("Erreur : Le fichier JSON est corrompu. Réinitialisation des données.")
-                logging.info("Erreur : Le fichier JSON est corrompu. Réinitialisation des données.")
-                self.xp_data = {}
-            except Exception as e:
-                print(f"Erreur lors du chargement : {e}")
-                logging.info(f"Erreur lors du chargement : {e}")
-        else:
-            print("Aucune sauvegarde d'XP trouvée. Création d'une nouvelle base.")
-            logging.info("Aucune sauvegarde d'XP trouvée. Création d'une nouvelle base.")
-
-    def save_xp_data(self):
-        """Sauvegarde les données d'XP dans un fichier JSON."""
+        # Utilisation d'une variable d'environnement pour sécuriser l'URI MongoDB
+        self.mongo_uri = os.getenv("MONGO_URI")
+        if not self.mongo_uri:
+            logging.error("Erreur : URI MongoDB non configurée dans les variables d'environnement.")
+            raise ValueError("La variable d'environnement MONGO_URI est obligatoire.")
+        
         try:
-            with open("xp_data.json", "w", encoding="utf-8") as file:
-                json.dump(self.xp_data, file, ensure_ascii=False, indent=4)
-            print("Données d'XP sauvegardées avec succès !")
-            logging.info("Données d'XP sauvegardées avec succès !")
+            self.client = MongoClient(self.mongo_uri)
+            self.db = self.client["discord_bot"]
+            self.collection = self.db["xp_data"]
+            logging.info("Connexion à MongoDB réussie.")
         except Exception as e:
-            print(f"Erreur lors de la sauvegarde : {e}")
-            logging.info(f"Erreur lors de la sauvegarde : {e}")
+            logging.error(f"Erreur lors de la connexion à MongoDB : {e}")
+            raise
 
-    @tasks.loop(minutes=5)  # Sauvegarde automatique toutes les 5 minutes
-    async def save_task(self):
-        self.save_xp_data()
-        print("Données d'XP sauvegardées automatiquement.")
-        logging.info("Données d'XP sauvegardées automatiquement.")
+    def get_user_data(self, user_id):
+        """Récupère les données d'XP d'un utilisateur depuis MongoDB."""
+        try:
+            user_data = self.collection.find_one({"user_id": user_id})
+            if not user_data:
+                user_data = {"user_id": user_id, "xp": 0}
+                self.collection.insert_one(user_data)
+                logging.info(f"Création de données pour l'utilisateur {user_id}.")
+            return user_data
+        except Exception as e:
+            logging.error(f"Erreur lors de la récupération des données d'utilisateur : {e}")
+            return {"user_id": user_id, "xp": 0}
 
-    def cog_unload(self):
-        """Appelé lors du déchargement du cog pour sauvegarder les données."""
-        self.save_xp_data()
-        self.save_task.cancel()
-
-    def add_xp(self, user_id, xp_amount):
-        """Ajoute de l'XP à un utilisateur."""
-        if user_id not in self.xp_data:
-            self.xp_data[user_id] = {"xp": 0}
-        self.xp_data[user_id]["xp"] += xp_amount
-        self.save_xp_data()  # Sauvegarde immédiatement après une mise à jour
+    def update_user_data(self, user_id, xp_amount):
+        """Mise à jour des données d'XP d'un utilisateur."""
+        try:
+            self.collection.update_one(
+                {"user_id": user_id},
+                {"$inc": {"xp": xp_amount}},
+                upsert=True
+            )
+            logging.info(f"Ajout de {xp_amount} XP pour l'utilisateur {user_id}.")
+        except Exception as e:
+            logging.error(f"Erreur lors de la mise à jour des données d'XP : {e}")
 
     @commands.Cog.listener()
     async def on_message(self, message):
         """Ajoute de l'XP lorsqu'un utilisateur envoie un message."""
         if message.author.bot:
-            return  # Ignore les messages des bots
-
-        xp_gained = random.randint(5, 15)  # Gagne entre 5 et 15 XP
-        self.add_xp(str(message.author.id), xp_gained)
+            return
+        xp_gained = random.randint(5, 15)
+        self.update_user_data(str(message.author.id), xp_gained)
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
         """Ajoute de l'XP lorsqu'un utilisateur réagit à un message."""
         if user.bot:
-            return  # Ignore les réactions des bots
-
-        xp_gained = random.randint(2, 10)  # Gagne entre 2 et 10 XP
-        self.add_xp(str(user.id), xp_gained)
+            return
+        xp_gained = random.randint(2, 10)
+        self.update_user_data(str(user.id), xp_gained)
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
         """Ajoute de l'XP lorsqu'un utilisateur est actif dans un salon vocal."""
         if member.bot:
-            return  # Ignore les bots
-
+            return
         if after.channel and not before.channel:
-            xp_gained = random.randint(10, 20)  # Gagne entre 10 et 20 XP
-            self.add_xp(str(member.id), xp_gained)
+            xp_gained = random.randint(10, 20)
+            self.update_user_data(str(member.id), xp_gained)
 
     @app_commands.command(name="xp", description="Affiche ton XP actuel.")
     async def check_xp(self, interaction: discord.Interaction):
         """Commande slash pour vérifier son propre XP."""
         user_id = str(interaction.user.id)
-        xp = self.xp_data.get(user_id, {}).get("xp", 0)
+        user_data = self.get_user_data(user_id)
+        xp = user_data.get("xp", 0)
         await interaction.response.send_message(
             f"{interaction.user.mention}, tu as actuellement **{xp} XP** !",
             ephemeral=True
         )
 
-    async def setup(self, bot):
-        await bot.add_cog(XPSystem(bot))
+    def cog_unload(self):
+        """Appelé lors du déchargement du cog."""
+        try:
+            self.client.close()
+            logging.info("Connexion MongoDB fermée.")
+        except Exception as e:
+            logging.error(f"Erreur lors de la fermeture de MongoDB : {e}")
 
 async def setup(bot):
     await bot.add_cog(XPSystem(bot))
