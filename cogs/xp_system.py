@@ -60,6 +60,7 @@ class XPSystem(commands.Cog):
         """Mise à jour des données d'XP et de niveau d'un utilisateur."""
         try:
             user_data = self.get_user_data(user_id)
+            old_level = user_data["level"]
             new_xp = user_data["xp"] + xp_amount
             new_level = self.calculate_level(new_xp)
 
@@ -69,7 +70,23 @@ class XPSystem(commands.Cog):
                 {"$set": {"xp": new_xp, "level": new_level}},
                 upsert=True
             )
-            logging.info(f"Ajout de {xp_amount} XP pour l'utilisateur {user_id} (source : {source}). Nouveau niveau : {new_level}.")
+
+            # Vérification si l'utilisateur a monté de niveau
+            if new_level > old_level:
+                logging.info(f"L'utilisateur {user_id} a atteint le niveau {new_level}.")
+
+                # Envoi d'un message privé pour notifier l'utilisateur
+                user = self.bot.get_user(int(user_id))
+                if user:
+                    try:
+                        asyncio.create_task(
+                            user.send(f"Félicitations ! 🎉 Tu as atteint le **niveau {new_level}** ! Continue comme ça ! 🚀")
+                        )
+                    except Exception as e:
+                        logging.error(f"Impossible d'envoyer un MP à l'utilisateur {user_id} : {e}")
+            else:
+                logging.info(f"Ajout de {xp_amount} XP pour l'utilisateur {user_id} (source : {source}). Nouveau niveau : {new_level}.")
+
         except Exception as e:
             logging.error(f"Erreur lors de la mise à jour des données d'XP : {e}")
 
