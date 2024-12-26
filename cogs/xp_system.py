@@ -48,7 +48,7 @@ class XPSystem(commands.Cog):
             logging.error(f"Erreur lors de la récupération des données d'utilisateur : {e}")
             return {"user_id": user_id, "xp": 0}
 
-    def update_user_data(self, user_id, xp_amount):
+    def update_user_data(self, user_id, xp_amount, source):
         """Mise à jour des données d'XP d'un utilisateur."""
         try:
             self.collection.update_one(
@@ -56,7 +56,7 @@ class XPSystem(commands.Cog):
                 {"$inc": {"xp": xp_amount}},
                 upsert=True
             )
-            logging.info(f"Ajout de {xp_amount} XP pour l'utilisateur {user_id}.")
+            logging.info(f"Ajout de {xp_amount} XP pour l'utilisateur {user_id} (source : {source}).")
         except Exception as e:
             logging.error(f"Erreur lors de la mise à jour des données d'XP : {e}")
 
@@ -75,7 +75,7 @@ class XPSystem(commands.Cog):
         
         self.last_message_xp[user_id] = now
         xp_gained = random.randint(5, 15)
-        self.update_user_data(user_id, xp_gained)
+        self.update_user_data(user_id, xp_gained, source="Message")
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
@@ -95,7 +95,7 @@ class XPSystem(commands.Cog):
 
         self.reaction_tracking[message_id].add(user_id)
         xp_gained = random.randint(2, 10)
-        self.update_user_data(user_id, xp_gained)
+        self.update_user_data(user_id, xp_gained, source="Réaction")
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
@@ -125,7 +125,7 @@ class XPSystem(commands.Cog):
                 if not member.voice or not member.voice.channel:  # Vérifie si l'utilisateur est encore en vocal
                     break
                 xp_gained = random.randint(10, 20)
-                self.update_user_data(str(member.id), xp_gained)
+                self.update_user_data(str(member.id), xp_gained, source="Vocal")
 
         return self.bot.loop.create_task(add_vocal_xp())
 
