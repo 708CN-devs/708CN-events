@@ -148,32 +148,32 @@ class XPSystem(commands.Cog):
 
         return self.bot.loop.create_task(add_vocal_xp())
 
-@app_commands.command(name="xp", description="Affiche l'XP et le niveau d'un utilisateur.")
-async def check_xp(self, interaction: discord.Interaction, user: discord.Member = None):
-    """Commande slash pour vérifier l'XP et le niveau d'un utilisateur."""
-    try:
-        # Préviens Discord que la réponse est différée si nécessaire
-        await interaction.response.defer(ephemeral=True)
+    @app_commands.command(name="xp", description="Affiche l'XP et le niveau d'un utilisateur.")
+    async def check_xp(self, interaction: discord.Interaction, user: discord.Member = None):
+        """Commande slash pour vérifier l'XP et le niveau d'un utilisateur."""
+        try:
+            # Préviens Discord que la réponse est différée si nécessaire
+            await interaction.response.defer(ephemeral=True)
 
-        target_user = user if user else interaction.user
-        user_id = str(target_user.id)
-        user_data = self.get_user_data(user_id)
-        xp = user_data.get("xp", 0)
-        level = user_data.get("level", 1)
+            target_user = user if user else interaction.user
+            user_id = str(target_user.id)
+            user_data = self.get_user_data(user_id)
+            xp = user_data.get("xp", 0)
+            level = user_data.get("level", 1)
 
-        # Envoie la réponse finale
-        if user:
-            await interaction.followup.send(
-                f"L'XP de {target_user.mention} : **{xp} XP** et il est niveau **{level}** !"
-            )
-        else:
-            await interaction.followup.send(
-                f"{interaction.user.mention}, tu as actuellement **{xp} XP** et tu es niveau **{level}** !"
-            )
-    except discord.errors.NotFound:
-        logging.error("L'interaction n'est plus valide ou a expiré.")
-    except Exception as e:
-        logging.error(f"Erreur lors du traitement de la commande /xp : {e}")
+            # Envoie la réponse finale
+            if user:
+                await interaction.followup.send(
+                    f"L'XP de {target_user.mention} : **{xp} XP** et il est niveau **{level}** !"
+                )
+            else:
+                await interaction.followup.send(
+                    f"{interaction.user.mention}, tu as actuellement **{xp} XP** et tu es niveau **{level}** !"
+                )
+        except discord.errors.NotFound:
+            logging.error("L'interaction n'est plus valide ou a expiré.")
+        except Exception as e:
+            logging.error(f"Erreur lors du traitement de la commande /xp : {e}")
 
     @app_commands.command(name="xp-add", description="Ajoute de l'XP à un utilisateur.")
     @app_commands.describe(user="L'utilisateur à modifier.", xp_amount="Montant d'XP à ajouter.")
