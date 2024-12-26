@@ -181,7 +181,7 @@ class XPSystem(commands.Cog):
             level = user_data.get("level", 1)
 
             # Calcul de l'XP nécessaire pour passer au niveau suivant
-            xp_next_level = (level + 1) ** 1/XP_LIMITS["levels"]["multiplicator"]  # Utilisation de la formule XP = LVL^1/Coeficient
+            xp_next_level = (level + 1) ** XP_LIMITS["levels"]["multiplicator"]  # Utilisation de la formule XP = LVL^1/Coeficient
             xp_next_level = math.ceil(xp_next_level)  # Arrondi à l'entier supérieur
 
             # Envoie la réponse finale
