@@ -106,14 +106,19 @@ class XPSystem(commands.Cog):
     def has_command_permission(self, command_name, user):
         """Vérifie si l'utilisateur a la permission d'utiliser une commande."""
         try:
-            command_roles = self.db["command_roles"].find_one({"command": command_name})
-            if not command_roles or "roles" not in command_roles:
-                return True  # Si aucun rôle n'est configuré, tout le monde peut utiliser la commande
+            # Exceptions pour certaines commandes accessibles à tous
+            if command_name in ["xp"]:
+                return True
             
+            # Récupérer les rôles configurés pour la commande
+            command_roles = self.db["command_roles"].find_one({"command": command_name})
+            
+            # Si aucun rôle n'est configuré, bloquer l'accès
+            if not command_roles or "roles" not in command_roles:
+                return False  # Bloqué par défaut
+            
+            # Vérifie si l'utilisateur a l'un des rôles autorisés
             user_roles = [role.id for role in user.roles]
-            if command_name == "xp":
-                # Inversion pour la commande `/xp`
-                return not any(role in user_roles for role in command_roles["roles"])
             return any(role in user_roles for role in command_roles["roles"])
         except Exception as e:
             logging.error(f"Erreur lors de la vérification des permissions pour la commande {command_name} : {e}")
