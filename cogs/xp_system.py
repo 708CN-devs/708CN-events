@@ -298,25 +298,29 @@ class XPSystem(commands.Cog):
 
     @app_commands.command(name="set-command-role", description="Définit les rôles autorisés à utiliser une commande du bot.")
     @app_commands.describe(command="La commande à configurer.", roles="Les rôles à autoriser.")
-    async def set_command_role(self, interaction: discord.Interaction, command: str, roles: discord.Role):
+    async def set_command_role(self, interaction: discord.Interaction, command: str, roles: list[discord.Role]):
         """Définit les rôles autorisés pour une commande spécifique."""
         try:
             # Autorise uniquement les administrateurs à définir les rôles
-            # if not interaction.user.guild_permissions.administrator:
-            #     await interaction.response.send_message(
-            #         "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
-            #     )
-            #     return
+            #if not interaction.user.guild_permissions.administrator:
+            #    await interaction.response.send_message(
+            #        "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+            #    )
+            #    return
 
-            # Remplace les rôles existants dans la base de données
+            # Extraire les IDs des rôles
             role_ids = [role.id for role in roles]
+
+            # Mise à jour ou insertion dans MongoDB
             self.db["command_roles"].update_one(
                 {"command": command},
                 {"$set": {"roles": role_ids}},
                 upsert=True
             )
+
+            # Confirmation à l'utilisateur
             await interaction.response.send_message(
-                f"Les rôles {', '.join([role.mention for role in roles])} ont été définis comme autorisés pour la commande `{command}`.", 
+                f"Les rôles {', '.join([role.mention for role in roles])} ont été définis comme autorisés pour la commande `{command}`.",
                 ephemeral=True
             )
         except Exception as e:
