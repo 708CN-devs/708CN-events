@@ -1,5 +1,5 @@
 import discord
-from discord import app_commands
+from discord import app_commands, Role
 from discord.ext import commands, tasks
 import random
 import logging
