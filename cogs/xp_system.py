@@ -98,10 +98,15 @@ class XPSystem(commands.Cog):
         level = math.floor(xp ** XP_LIMITS["levels"]["multiplicator"])  # Ajuster ici le diviseur et l'exposant
         return level
 
+    def is_channel_ignored(self, channel_id):
+        """Vérifie si un salon est ignoré pour les gains d'XP."""
+        ignored_channel = self.db["ignored_channels"].find_one({"channel_id": channel_id})
+        return ignored_channel is not None
+
     @commands.Cog.listener()
     async def on_message(self, message):
-        """Ajoute de l'XP lorsqu'un utilisateur envoie un message."""
-        if message.author.bot:
+        """Ajoute de l'XP lorsqu'un utilisateur envoie un message(si le salon n'est pas ignoré)."""
+        if message.author.bot or self.is_channel_ignored(message.channel.id):
             return
         
         user_id = str(message.author.id)
@@ -117,8 +122,8 @@ class XPSystem(commands.Cog):
 
     @commands.Cog.listener()
     async def on_reaction_add(self, reaction, user):
-        """Ajoute de l'XP lorsqu'un utilisateur réagit à un message."""
-        if user.bot:
+        """Ajoute de l'XP lorsqu'un utilisateur réagit à un message (si le salon n'est pas ignoré)."""
+        if user.bot or self.is_channel_ignored(reaction.message.channel.id):
             return
         
         message_id = str(reaction.message.id)
@@ -144,6 +149,8 @@ class XPSystem(commands.Cog):
 
         # Si l'utilisateur rejoint un salon vocal
         if after.channel and not before.channel:
+            if self.is_channel_ignored(after.channel.id):  # Vérifie si le salon est ignoré
+                return
             if user_id not in self.vocal_timers:
                 # Démarrer un timer pour cet utilisateur
                 self.vocal_timers[user_id] = self.start_vocal_timer(member)
@@ -232,6 +239,40 @@ class XPSystem(commands.Cog):
         except Exception as e:
             logging.error(f"Erreur lors du retrait d'XP : {e}")
             await interaction.response.send_message("Une erreur est survenue lors du retrait d'XP.", ephemeral=True)
+
+    @app_commands.command(name="ignore-channel", description="Ajoute un salon (textuel ou vocal) à la liste des salons ignorés pour les gains d'XP.")
+    @app_commands.describe(channel="Le salon (textuel ou vocal) à ignorer.")
+    async def ignore_channel(self, interaction: discord.Interaction, channel: discord.abc.GuildChannel):
+        """Ajoute un salon (textuel ou vocal) à la liste des salons ignorés."""
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+            return
+
+        try:
+            self.db["ignored_channels"].update_one(
+                {"channel_id": channel.id},
+                {"$set": {"channel_id": channel.id}},
+                upsert=True
+            )
+            await interaction.response.send_message(f"Le salon {channel.mention} est maintenant ignoré pour les gains d'XP.", ephemeral=True)
+        except Exception as e:
+            logging.error(f"Erreur lors de l'ajout du salon ignoré : {e}")
+            await interaction.response.send_message("Une erreur est survenue lors de l'ajout du salon à la liste ignorée.", ephemeral=True)
+
+    @app_commands.command(name="unignore-channel", description="Supprime un salon (textuel ou vocal) de la liste des salons ignorés pour les gains d'XP.")
+    @app_commands.describe(channel="Le salon (textuel ou vocal) à ne plus ignorer.")
+    async def unignore_channel(self, interaction: discord.Interaction, channel: discord.abc.GuildChannel):
+        """Supprime un salon (textuel ou vocal) de la liste des salons ignorés."""
+        if not interaction.user.guild_permissions.administrator:
+            await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+            return
+
+        try:
+            self.db["ignored_channels"].delete_one({"channel_id": channel.id})
+            await interaction.response.send_message(f"Le salon {channel.mention} n'est plus ignoré pour les gains d'XP.", ephemeral=True)
+        except Exception as e:
+            logging.error(f"Erreur lors de la suppression du salon ignoré : {e}")
+            await interaction.response.send_message("Une erreur est survenue lors de la suppression du salon de la liste ignorée.", ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(XPSystem(bot))
