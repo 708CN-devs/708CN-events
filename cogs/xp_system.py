@@ -298,7 +298,7 @@ class XPSystem(commands.Cog):
 
     @app_commands.command(name="set-command-role", description="Définit les rôles autorisés à utiliser une commande du bot.")
     @app_commands.describe(command="La commande à configurer.", roles="Les rôles à autoriser.")
-    async def set_command_role(self, interaction: discord.Interaction, command: str, roles: commands.Greedy[discord.Role]):
+    async def set_command_role(self, interaction: discord.Interaction, command: str, roles: list[discord.Role]):
         """Définit les rôles autorisés pour une commande spécifique."""
         try:
             # Autorise uniquement les administrateurs à définir les rôles
