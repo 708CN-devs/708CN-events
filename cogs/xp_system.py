@@ -302,11 +302,11 @@ class XPSystem(commands.Cog):
         """Définit un rôle autorisé pour une commande spécifique."""
         try:
             # Autorise uniquement les administrateurs à définir les rôles
-            #if not interaction.user.guild_permissions.administrator:
-            #    await interaction.response.send_message(
-            #        "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
-            #    )
-            #    return
+            if not interaction.user.guild_permissions.administrator:
+                await interaction.response.send_message(
+                    "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+                )
+                return
 
             self.db["command_roles"].update_one(
                 {"command": command},
@@ -328,11 +328,11 @@ class XPSystem(commands.Cog):
         """Retire un rôle autorisé pour une commande spécifique."""
         try:
             # Autorise uniquement les administrateurs
-            #if not interaction.user.guild_permissions.administrator:
-            #    await interaction.response.send_message(
-            #        "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
-            #    )
-            #    return
+            if not interaction.user.guild_permissions.administrator:
+                await interaction.response.send_message(
+                    "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+                )
+                return
 
             # Mise à jour dans la base de données : suppression du rôle
             self.db["command_roles"].update_one(
