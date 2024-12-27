@@ -296,31 +296,44 @@ class XPSystem(commands.Cog):
             logging.error(f"Erreur lors de la suppression du salon ignoré : {e}")
             await interaction.response.send_message("Une erreur est survenue lors de la suppression du salon de la liste ignorée.", ephemeral=True)
 
-    @app_commands.command(name="set-command-role", description="Définit un rôle autorisé à utiliser les commandes du bot.")
-    @app_commands.describe(command="La commande à configurer.", role="Le rôle à autoriser.")
-    async def set_command_role(self, interaction: discord.Interaction, command: str, role: discord.Role):
-        """Définit un rôle autorisé pour une commande spécifique."""
+    @app_commands.command(name="set-command-role", description="Définit les rôles autorisés à utiliser une commande du bot.")
+    @app_commands.describe(command="La commande à configurer.", roles="Les rôles à autoriser.")
+    async def set_command_role(self, interaction: discord.Interaction, command: str, roles: commands.Greedy[discord.Role]):
+        """Définit les rôles autorisés pour une commande spécifique."""
         try:
             # Autorise uniquement les administrateurs à définir les rôles
-            if not interaction.user.guild_permissions.administrator:
-                await interaction.response.send_message(
-                    "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
-                )
-                return
+            # if not interaction.user.guild_permissions.administrator:
+            #     await interaction.response.send_message(
+            #         "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+            #     )
+            #     return
 
+            # Remplace les rôles existants dans la base de données
+            role_ids = [role.id for role in roles]
             self.db["command_roles"].update_one(
                 {"command": command},
-                {"$addToSet": {"roles": role.id}},
+                {"$set": {"roles": role_ids}},
                 upsert=True
             )
             await interaction.response.send_message(
-                f"Le rôle {role.mention} a été autorisé à utiliser la commande `{command}`.", ephemeral=True
+                f"Les rôles {', '.join([role.mention for role in roles])} ont été définis comme autorisés pour la commande `{command}`.", 
+                ephemeral=True
             )
         except Exception as e:
-            logging.error(f"Erreur lors de la configuration des rôles pour les commandes : {e}")
+            logging.error(f"Erreur lors de la configuration des rôles pour la commande {command} : {e}")
             await interaction.response.send_message(
                 "Une erreur est survenue lors de la configuration des rôles autorisés.", ephemeral=True
             )
+
+    @set_command_role.autocomplete("command")
+    async def set_command_role_autocomplete(self, interaction: discord.Interaction, current: str):
+        """Fournit une liste des commandes du bot pour l'auto-complétion."""
+        commands = [
+            cmd.name for cmd in self.bot.tree.get_commands() 
+            if cmd.name.startswith(current)
+        ]
+        return [app_commands.Choice(name=cmd, value=cmd) for cmd in commands]
+
 
     @app_commands.command(name="remove-command-role", description="Retire un rôle autorisé à utiliser une commande du bot.")
     @app_commands.describe(command="La commande à configurer.", role="Le rôle à retirer.")
@@ -328,11 +341,11 @@ class XPSystem(commands.Cog):
         """Retire un rôle autorisé pour une commande spécifique."""
         try:
             # Autorise uniquement les administrateurs
-            if not interaction.user.guild_permissions.administrator:
-                await interaction.response.send_message(
-                    "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
-                )
-                return
+            # if not interaction.user.guild_permissions.administrator:
+            #     await interaction.response.send_message(
+            #         "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+            #     )
+            #     return
 
             # Mise à jour dans la base de données : suppression du rôle
             self.db["command_roles"].update_one(
@@ -347,6 +360,12 @@ class XPSystem(commands.Cog):
             await interaction.response.send_message(
                 "Une erreur est survenue lors du retrait des autorisations pour ce rôle.", ephemeral=True
             )
+
+    @remove_command_role.autocomplete("command")
+    async def remove_command_role_autocomplete(self, interaction: discord.Interaction, current: str):
+        """Fournit une liste des commandes du bot pour l'auto-complétion."""
+        commands = [cmd.name for cmd in self.bot.tree.get_commands() if cmd.name.startswith(current)]
+        return [app_commands.Choice(name=cmd, value=cmd) for cmd in commands]
 
 async def setup(bot):
     await bot.add_cog(XPSystem(bot))
