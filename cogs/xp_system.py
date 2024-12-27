@@ -103,6 +103,18 @@ class XPSystem(commands.Cog):
         ignored_channel = self.db["ignored_channels"].find_one({"channel_id": channel_id})
         return ignored_channel is not None
 
+    def has_command_permission(self, command_name, user):
+        """Vérifie si l'utilisateur a la permission d'utiliser une commande."""
+        try:
+            command_roles = self.db["command_roles"].find_one({"command": command_name})
+            if not command_roles or "roles" not in command_roles:
+                return True  # Si aucun rôle n'est configuré, tout le monde peut utiliser la commande
+            user_roles = [role.id for role in user.roles]
+            return any(role in user_roles for role in command_roles["roles"])
+        except Exception as e:
+            logging.error(f"Erreur lors de la vérification des permissions pour la commande {command_name} : {e}")
+            return False
+
     @commands.Cog.listener()
     async def on_message(self, message):
         """Ajoute de l'XP lorsqu'un utilisateur envoie un message(si le salon n'est pas ignoré)."""
@@ -177,6 +189,12 @@ class XPSystem(commands.Cog):
     @app_commands.command(name="xp", description="Affiche l'XP et le niveau d'un utilisateur.")
     async def check_xp(self, interaction: discord.Interaction, user: discord.Member = None):
         """Commande slash pour vérifier l'XP et le niveau d'un utilisateur."""
+        if not self.has_command_permission("xp", interaction.user):
+            await interaction.response.send_message(
+                "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+            )
+            return
+
         try:
             # Préviens Discord que la réponse est différée si nécessaire
             await interaction.response.defer(ephemeral=True)
@@ -244,8 +262,10 @@ class XPSystem(commands.Cog):
     @app_commands.describe(channel="Le salon (textuel ou vocal) à ignorer.")
     async def ignore_channel(self, interaction: discord.Interaction, channel: discord.abc.GuildChannel):
         """Ajoute un salon (textuel ou vocal) à la liste des salons ignorés."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+        if not self.has_command_permission("ignore-channel", interaction.user):
+            await interaction.response.send_message(
+                "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+            )
             return
 
         try:
@@ -263,8 +283,10 @@ class XPSystem(commands.Cog):
     @app_commands.describe(channel="Le salon (textuel ou vocal) à ne plus ignorer.")
     async def unignore_channel(self, interaction: discord.Interaction, channel: discord.abc.GuildChannel):
         """Supprime un salon (textuel ou vocal) de la liste des salons ignorés."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+        if not self.has_command_permission("unignore-channel", interaction.user):
+            await interaction.response.send_message(
+                "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+            )
             return
 
         try:
@@ -273,6 +295,58 @@ class XPSystem(commands.Cog):
         except Exception as e:
             logging.error(f"Erreur lors de la suppression du salon ignoré : {e}")
             await interaction.response.send_message("Une erreur est survenue lors de la suppression du salon de la liste ignorée.", ephemeral=True)
+
+    @app_commands.command(name="set-command-role", description="Définit un rôle autorisé à utiliser les commandes du bot.")
+    @app_commands.describe(command="La commande à configurer.", role="Le rôle à autoriser.")
+    async def set_command_role(self, interaction: discord.Interaction, command: str, role: discord.Role):
+        """Définit un rôle autorisé pour une commande spécifique."""
+        try:
+            # Autorise uniquement les administrateurs à définir les rôles
+            if not interaction.user.guild_permissions.administrator:
+                await interaction.response.send_message(
+                    "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+                )
+                return
+
+            self.db["command_roles"].update_one(
+                {"command": command},
+                {"$addToSet": {"roles": role.id}},
+                upsert=True
+            )
+            await interaction.response.send_message(
+                f"Le rôle {role.mention} a été autorisé à utiliser la commande `{command}`.", ephemeral=True
+            )
+        except Exception as e:
+            logging.error(f"Erreur lors de la configuration des rôles pour les commandes : {e}")
+            await interaction.response.send_message(
+                "Une erreur est survenue lors de la configuration des rôles autorisés.", ephemeral=True
+            )
+
+    @app_commands.command(name="remove-command-role", description="Retire un rôle autorisé à utiliser une commande du bot.")
+    @app_commands.describe(command="La commande à configurer.", role="Le rôle à retirer.")
+    async def remove_command_role(self, interaction: discord.Interaction, command: str, role: discord.Role):
+        """Retire un rôle autorisé pour une commande spécifique."""
+        try:
+            # Autorise uniquement les administrateurs
+            if not interaction.user.guild_permissions.administrator:
+                await interaction.response.send_message(
+                    "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+                )
+                return
+
+            # Mise à jour dans la base de données : suppression du rôle
+            self.db["command_roles"].update_one(
+                {"command": command},
+                {"$pull": {"roles": role.id}}
+            )
+            await interaction.response.send_message(
+                f"Le rôle {role.mention} a été retiré des autorisations pour la commande `{command}`.", ephemeral=True
+            )
+        except Exception as e:
+            logging.error(f"Erreur lors de la suppression d'un rôle pour la commande {command} : {e}")
+            await interaction.response.send_message(
+                "Une erreur est survenue lors du retrait des autorisations pour ce rôle.", ephemeral=True
+            )
 
 async def setup(bot):
     await bot.add_cog(XPSystem(bot))
