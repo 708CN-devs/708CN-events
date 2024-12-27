@@ -109,7 +109,11 @@ class XPSystem(commands.Cog):
             command_roles = self.db["command_roles"].find_one({"command": command_name})
             if not command_roles or "roles" not in command_roles:
                 return True  # Si aucun rôle n'est configuré, tout le monde peut utiliser la commande
+            
             user_roles = [role.id for role in user.roles]
+            if command_name == "xp":
+                # Inversion pour la commande `/xp`
+                return not any(role in user_roles for role in command_roles["roles"])
             return any(role in user_roles for role in command_roles["roles"])
         except Exception as e:
             logging.error(f"Erreur lors de la vérification des permissions pour la commande {command_name} : {e}")
@@ -228,6 +232,12 @@ class XPSystem(commands.Cog):
     @app_commands.describe(user="L'utilisateur à modifier.", xp_amount="Montant d'XP à ajouter.")
     async def add_xp(self, interaction: discord.Interaction, user: discord.Member, xp_amount: int):
         """Ajoute de l'XP à un utilisateur."""
+        if not self.has_command_permission("xp-add", interaction.user):
+            await interaction.response.send_message(
+                "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+            )
+            return
+        
         try:
             self.update_user_data(
                 str(user.id), 
@@ -245,6 +255,12 @@ class XPSystem(commands.Cog):
     @app_commands.describe(user="L'utilisateur à modifier.", xp_amount="Montant d'XP à retirer.")
     async def remove_xp(self, interaction: discord.Interaction, user: discord.Member, xp_amount: int):
         """Retire de l'XP à un utilisateur."""
+        if not self.has_command_permission("xp-remove", interaction.user):
+            await interaction.response.send_message(
+                "Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+            )
+            return
+        
         try:
             self.update_user_data(
                 str(user.id), 
