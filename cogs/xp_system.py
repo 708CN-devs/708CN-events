@@ -244,9 +244,9 @@ class XPSystem(commands.Cog):
     @app_commands.describe(channel="Le salon (textuel ou vocal) à ignorer.")
     async def ignore_channel(self, interaction: discord.Interaction, channel: discord.abc.GuildChannel):
         """Ajoute un salon (textuel ou vocal) à la liste des salons ignorés."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
-            return
+        #if not interaction.user.guild_permissions.administrator:
+        #    await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+        #    return
 
         try:
             self.db["ignored_channels"].update_one(
@@ -263,9 +263,9 @@ class XPSystem(commands.Cog):
     @app_commands.describe(channel="Le salon (textuel ou vocal) à ne plus ignorer.")
     async def unignore_channel(self, interaction: discord.Interaction, channel: discord.abc.GuildChannel):
         """Supprime un salon (textuel ou vocal) de la liste des salons ignorés."""
-        if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
-            return
+        #if not interaction.user.guild_permissions.administrator:
+        #    await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+        #    return
 
         try:
             self.db["ignored_channels"].delete_one({"channel_id": channel.id})
