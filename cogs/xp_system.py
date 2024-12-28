@@ -62,16 +62,24 @@ class XPSystem(commands.Cog):
         """Mise à jour des données d'XP et de niveau d'un utilisateur."""
         try:
             user_data = self.get_user_data(user_id)
+            logging.debug(f"Données utilisateur récupérées : {user_data}") # Debug récupération de données
             old_level = user_data["level"]
             new_xp = user_data["xp"] + xp_amount
             new_level = self.calculate_level(new_xp)
+            logging.debug(f"XP actuel : {new_xp}, Nouveau niveau calculé : {new_level}") # Debug calcul niveau
+
+            """Vérification si l'utilisateur possède les données"""
+            if not user_data:
+                user_data = {"xp": 0, "level": 0}  # Valeurs par défaut si l'utilisateur n'existe pas
 
             # Mise à jour des données d'XP et de niveau
-            self.collection.update_one(
+            result = self.collection.update_one(
                 {"user_id": user_id},
                 {"$set": {"xp": new_xp, "level": new_level}},
                 upsert=True
             )
+            if result.modified_count == 0 and result.upserted_id is None:
+                logging.warning(f"La mise à jour pour l'utilisateur {user_id} n'a pas été effectuée.")
 
             # Vérification si l'utilisateur a monté de niveau
             if new_level > old_level:
@@ -91,6 +99,7 @@ class XPSystem(commands.Cog):
 
         except Exception as e:
             logging.error(f"Erreur lors de la mise à jour des données d'XP : {e}")
+            logging.error(f"Erreur lors de la mise à jour des données d'XP (user_id : {user_id}, xp_amount : {xp_amount}, source : {source}) : {e}")
 
     def calculate_level(self, xp):
         """Calcule le niveau d'un utilisateur en fonction de son XP."""
