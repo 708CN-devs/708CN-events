@@ -23,30 +23,13 @@ EXCLUDED_WORDS = [
     "nan",
 ]
 
-# Substitutions possibles pour les lettres (par exemple "e" ↔ "3")
-LETTER_SUBSTITUTIONS = {
-    "a": "[a@4]",
-    "e": "[e3€]",
-    "i": "[i1!|]",
-    "o": "[o0]",
-    "u": "[uü]",
-    "c": "[cç]",
-}
-
-def build_advanced_pattern(word):
+def build_variant_pattern(word):
     """
-    Construit une regex avancée pour capturer les variantes d'un mot.
-    - Permet des substitutions de lettres (par exemple, "e" ↔ "3").
-    - Autorise des répétitions de lettres.
-    - Détecte les mots intégrés dans d'autres (par exemple, "superfeur").
+    Construit une regex pour capturer les variantes d'un mot.
+    Exemple : "feur" capture aussi "feuur", "fheur".
     """
-    pattern = ""
-    for char in word:
-        if char in LETTER_SUBSTITUTIONS:
-            pattern += LETTER_SUBSTITUTIONS[char] + "+"
-        else:
-            pattern += char + "+"
-    return rf"{pattern}"
+    pattern = "".join(f"{char}+" for char in word)  # Chaque lettre peut se répéter
+    return rf"\b{pattern}\b"
 
 class GenanceSystem(commands.Cog):
     def __init__(self, bot):
@@ -69,7 +52,7 @@ class GenanceSystem(commands.Cog):
 
         # Précompilation des patterns pour les mots gênants
         self.genance_patterns = {
-            word: re.compile(build_advanced_pattern(word), re.IGNORECASE)
+            word: re.compile(build_variant_pattern(word), re.IGNORECASE)
             for word in GENANCE_WORDS
         }
         # Précompilation des patterns pour les mots exclus
