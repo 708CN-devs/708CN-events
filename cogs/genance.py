@@ -11,9 +11,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Liste des mots gênants et des points attribués
 GENANCE_WORDS = {
-    "Feur": 5,
-    "Quoicoubeh": 10,
-    "Apagnan": 5,
+    "feur": 5,
+    "quoicoubeh": 10,
+    "apagnan": 5,
 }
 
 class GenanceSystem(commands.Cog):
@@ -68,6 +68,7 @@ class GenanceSystem(commands.Cog):
         if message.author.bot:
             return
 
+        logging.info(f"Message gênant reçu de {message.author}: {message.content}")
         user_id = str(message.author.id)
         content = message.content.lower()
 
