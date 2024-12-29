@@ -122,7 +122,7 @@ class GenanceSystem(commands.Cog):
         for word, pattern in self.genance_patterns.items():
             if pattern.search(content):
                 self.update_user_data(user_id, GENANCE_WORDS[word], word)
-                response = f"😬 {message.author.mention}, +{GENANCE_WORDS[word]} point(s) de gênance pour avoir dit **{word}** (ou une variante) !"
+                response = f"😬 {message.author.mention}, +{GENANCE_WORDS[word]} point(s) de gênance pour avoir dit **{word}** !"
                 # Vérifier si le bot a la permission de répondre dans le salon
                 if message.channel.permissions_for(message.guild.me).send_messages:
                     if message.channel.permissions_for(message.guild.me).mention_everyone:
