@@ -11,9 +11,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 # Liste des mots gênants et des points attribués
 GENANCE_WORDS = {
-    "mot1": 5,  # Remplacez "mot1" par un mot gênant et ajustez les points
-    "mot2": 10,
-    "mot3": 20,
+    "Feur": 5,  # Remplacez "mot1" par un mot gênant et ajustez les points
+    "Quoicoubeh": 10,
+    "Apagnan": 5,
 }
 
 class GenanceSystem(commands.Cog):
