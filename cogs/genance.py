@@ -133,7 +133,7 @@ class GenanceSystem(commands.Cog):
         matched_word, points = self.detect_similar_words(content)
         if matched_word:
             self.update_user_data(user_id, points, matched_word)
-            response = f"😬 {message.author.mention}, +{points} point(s) de gênance pour avoir dit **{matched_word}** (ou une variante) !"
+            response = f"😬 {message.author.mention}, +{points} point(s) de gênance pour avoir dit **{matched_word}** !"
             await message.channel.send(response)
             logging.info(f"Mot gênant détecté : '{matched_word}' (ou une variante) dans le message : '{message.content}'")
 
