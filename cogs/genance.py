@@ -123,13 +123,16 @@ class GenanceSystem(commands.Cog):
             if pattern.search(content):
                 self.update_user_data(user_id, GENANCE_WORDS[word], word)
                 response = f"😬 {message.author.mention}, +{GENANCE_WORDS[word]} point(s) de gênance pour avoir dit **{word}** (ou une variante) !"
-                # Vérifier si le bot a la permission de parler dans le salon
+                # Vérifier si le bot a la permission de répondre dans le salon
                 if message.channel.permissions_for(message.guild.me).send_messages:
-                    await message.channel.send(response)
+                    if message.channel.permissions_for(message.guild.me).mention_everyone:
+                        await message.reply(response)  # Réponse avec mention du message d'origine
+                    else:
+                        await message.channel.send(response)  # Envoie normalement si pas de reply possible
                 else:
-                    # Si le bot n'a pas la permission d'envoyer des messages, répondre via interaction simulée
-                    await message.reply(response)  # Cette réponse apparaîtra comme une réponse au message d'origine
-                logging.info(f"Mot gênant détecté : '{word}' (ou une variante) dans le message : '{message.content}'")
+                    # Répondre via un message privé (éphemeral) si le bot n'a pas la permission
+                    await message.author.send(response)
+                    logging.info(f"Mot gênant détecté : '{word}' (ou une variante) dans le message : '{message.content}'")
                 break  # Arrêter après le premier mot gênant détecté
 
     @app_commands.command(name="genance", description="Consulte les points de gênance d'un utilisateur.")
@@ -146,4 +149,3 @@ class GenanceSystem(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(GenanceSystem(bot))
-    
