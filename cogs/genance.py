@@ -21,7 +21,6 @@ GENANCE_WORDS = {
     "pagnan": 5,
     "jdene": 10,
     "lette": 10,
-    "fi": 5,
     "païen": 5,
 }
 
