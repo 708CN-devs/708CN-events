@@ -5,7 +5,7 @@ import random
 import logging
 import os
 import asyncio
-from pymongo import MongoClient
+from pymongo import MongoClient # type: ignore
 from datetime import datetime, timedelta
 import math
 

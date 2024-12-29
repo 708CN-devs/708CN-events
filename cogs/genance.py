@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from pymongo import MongoClient
+from pymongo import MongoClient # type: ignore
 import os
 import logging
 import re
@@ -14,6 +14,11 @@ GENANCE_WORDS = {
     "feur": 5,
     "quoicoubeh": 10,
     "apagnan": 5,
+    "quoicoubaka": 15,
+    "quoikoubaka": 15,
+    "baka": 10,
+    "uwu": 3,
+    "pagnan": 5,
 }
 
 # Liste des mots à exclure
