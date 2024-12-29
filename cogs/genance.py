@@ -5,6 +5,7 @@ from pymongo import MongoClient
 import os
 import logging
 import re
+from fuzzywuzzy import fuzz
 
 # Configuration des logs
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -103,6 +104,16 @@ class GenanceSystem(commands.Cog):
         except Exception as e:
             logging.error(f"Erreur lors de la mise à jour des points de gênance : {e}")
 
+    def detect_similar_words(self, content):
+        """Détecte les mots similaires à ceux de la liste des mots gênants, y compris les fautes."""
+        for word, points in GENANCE_WORDS.items():
+            # Comparaison floue (Levenshtein distance) entre chaque mot du message et les mots gênants
+            for message_word in content.split():
+                similarity = fuzz.partial_ratio(message_word.lower(), word.lower())
+                if similarity > 80:  # Seuil de similarité pour considérer une correspondance (ajuster si nécessaire)
+                    return word, points
+        return None, None
+
     @commands.Cog.listener()
     async def on_message(self, message):
         """Ajoute des points de gênance lorsqu'un mot gênant est détecté."""
@@ -119,13 +130,12 @@ class GenanceSystem(commands.Cog):
                 return
 
         # Vérification des mots gênants
-        for word, pattern in self.genance_patterns.items():
-            if pattern.search(content):
-                self.update_user_data(user_id, GENANCE_WORDS[word], word)
-                response = f"😬 {message.author.mention}, +{GENANCE_WORDS[word]} point(s) de gênance pour avoir dit **{word}** (ou une variante) !"
-                await message.channel.send(response)
-                logging.info(f"Mot gênant détecté : '{word}' (ou une variante) dans le message : '{message.content}'")
-                break  # Arrêter après le premier mot gênant détecté
+        matched_word, points = self.detect_similar_words(content)
+        if matched_word:
+            self.update_user_data(user_id, points, matched_word)
+            response = f"😬 {message.author.mention}, +{points} point(s) de gênance pour avoir dit **{matched_word}** (ou une variante) !"
+            await message.channel.send(response)
+            logging.info(f"Mot gênant détecté : '{matched_word}' (ou une variante) dans le message : '{message.content}'")
 
     @app_commands.command(name="genance", description="Consulte les points de gênance d'un utilisateur.")
     async def genance(self, interaction: discord.Interaction, member: discord.Member = None):
