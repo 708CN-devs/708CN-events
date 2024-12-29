@@ -20,6 +20,7 @@ GENANCE_WORDS = {
 # Liste des mots à exclure
 EXCLUDED_WORDS = [
     "fleur",  # Exemple : empêche que "fleur" soit détecté comme "feur"
+    "nan",
 ]
 
 # Substitutions possibles pour les lettres (par exemple "e" ↔ "3")
@@ -109,9 +110,16 @@ class GenanceSystem(commands.Cog):
         for word, points in GENANCE_WORDS.items():
             # Comparaison floue (Levenshtein distance) entre chaque mot du message et les mots gênants
             for message_word in content.split():
+                # Ignorer les mots trop courts (ex: "nan")
+                if len(message_word) < 3:
+                    continue
+
+                # Comparaison floue (avec un seuil ajusté à 85 pour plus de précision)
                 similarity = fuzz.partial_ratio(message_word.lower(), word.lower())
-                if similarity > 80:  # Seuil de similarité pour considérer une correspondance (ajuster si nécessaire)
-                    return word, points
+                if similarity > 85:  # Seuil plus strict pour éviter les faux positifs
+                    # Vérification supplémentaire pour ne pas détecter "nan" comme partie de "apagnan"
+                    if word in message_word:
+                        return word, points
         return None, None
 
     @commands.Cog.listener()
