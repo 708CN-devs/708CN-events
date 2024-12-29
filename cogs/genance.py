@@ -19,6 +19,8 @@ GENANCE_WORDS = {
     "baka": 10,
     "uwu": 3,
     "pagnan": 5,
+    "jdene": 10,
+    "lette": 10,
 }
 
 # Liste des mots à exclure
