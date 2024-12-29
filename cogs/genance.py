@@ -16,6 +16,19 @@ GENANCE_WORDS = {
     "apagnan": 5,
 }
 
+# Liste des mots à exclure
+EXCLUDED_WORDS = [
+    "fleur",  # Exemple : empêche que "fleur" soit détecté comme "feur"
+]
+
+def build_variant_pattern(word):
+    """
+    Construit une regex pour capturer les variantes d'un mot.
+    Exemple : "feur" capture aussi "feuur", "fheur".
+    """
+    pattern = "".join(f"{char}+" for char in word)  # Chaque lettre peut se répéter
+    return rf"\b{pattern}\b"
+
 class GenanceSystem(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -34,6 +47,17 @@ class GenanceSystem(commands.Cog):
         except Exception as e:
             logging.error(f"Erreur lors de la connexion à MongoDB : {e}")
             raise
+
+        # Précompilation des patterns pour les mots gênants
+        self.genance_patterns = {
+            word: re.compile(build_variant_pattern(word), re.IGNORECASE)
+            for word in GENANCE_WORDS
+        }
+        # Précompilation des patterns pour les mots exclus
+        self.excluded_patterns = [
+            re.compile(rf"\b{re.escape(excluded)}\b", re.IGNORECASE)
+            for excluded in EXCLUDED_WORDS
+        ]
 
     def get_user_data(self, user_id):
         """Récupère les données de gênance d'un utilisateur depuis MongoDB."""
@@ -68,16 +92,22 @@ class GenanceSystem(commands.Cog):
         if message.author.bot:
             return
 
-        logging.info(f"Message gênant reçu de {message.author}: {message.content}")
         user_id = str(message.author.id)
         content = message.content.lower()
 
-        for word, points in GENANCE_WORDS.items():
-            # Recherche du mot exact avec regex pour éviter les faux positifs
-            if re.search(rf"\b{re.escape(word)}\b", content):
-                self.update_user_data(user_id, points, word)
-                response = f"😬 {message.author.mention}, +{points} point(s) de gênance pour avoir dit **{word}** !"
+        # Vérification des mots exclus
+        for excluded_pattern in self.excluded_patterns:
+            if excluded_pattern.search(content):
+                logging.info(f"Message ignoré car contient un mot exclu : '{message.content}'")
+                return
+
+        # Vérification des mots gênants
+        for word, pattern in self.genance_patterns.items():
+            if pattern.search(content):
+                self.update_user_data(user_id, GENANCE_WORDS[word], word)
+                response = f"😬 {message.author.mention}, +{GENANCE_WORDS[word]} point(s) de gênance pour avoir dit **{word}** (ou une variante) !"
                 await message.channel.send(response)
+                logging.info(f"Mot gênant détecté : '{word}' (ou une variante) dans le message : '{message.content}'")
                 break  # Arrêter après le premier mot gênant détecté
 
     @app_commands.command(name="genance", description="Consulte les points de gênance d'un utilisateur.")
