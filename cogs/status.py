@@ -121,6 +121,11 @@ class BotStatusManager(commands.Cog):
             await interaction.response.send_message("❌ Statut invalide.", ephemeral=True)
             return
 
+        # Suspension temporaire du cycler s'il est actif
+        if self.activity_cycler.is_running():
+            self.activity_cycler.cancel()
+            logging.info("Cycler d'activités suspendu pour changement manuel.")
+
         self.current_status = status_map[status.lower()]
 
         # Si un type d'activité est défini, le texte devient obligatoire
@@ -143,11 +148,23 @@ class BotStatusManager(commands.Cog):
         else:
             self.current_activity = None
 
-        # Met à jour le bot
-        await self.bot.change_presence(activity=self.current_activity, status=self.current_status)
+        # Mise à jour du statut et de l'activité
+        try:
+            logging.info(f"Mise à jour du statut : {self.current_status}, activité : {self.current_activity}.")
+            await self.bot.change_presence(activity=self.current_activity, status=self.current_status)
+            logging.info("Statut et activité mis à jour avec succès.")
+        except Exception as e:
+            logging.error(f"Erreur lors de la mise à jour du statut/activité : {e}")
+            await interaction.response.send_message("❌ Une erreur est survenue lors du changement de statut.", ephemeral=True)
+            return
 
         # Sauvegarde dans MongoDB
         self.save_status_data()
+
+        # Réactivation du cycler si nécessaire
+        if self.activity_cycle:
+            self.activity_cycler.start()
+            logging.info("Cycler d'activités réactivé après changement manuel.")
 
         await interaction.response.send_message(
             f"✅ Statut mis à jour : {status.capitalize()}."
