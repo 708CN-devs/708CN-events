@@ -143,17 +143,23 @@ class BotStatusManager(commands.Cog):
         )
 
     @app_commands.command(name="setcycle", description="Alterner entre plusieurs activités à intervalles réguliers.")
-    async def set_cycle(self, interaction: discord.Interaction,
-                        interval: int,
-                        *activities: str):
-        """Définit un cycle d'activités."""
+    async def set_cycle(self, interaction: discord.Interaction, interval: int, activities: str):
+        """
+        Définit un cycle d'activités.
+        - `interval` : Intervalle en secondes entre chaque changement d'activité.
+        - `activities` : Liste des activités au format `type:text`, séparées par des virgules.
+        """
         if not await self.interaction_check(interaction):
             return
 
+        # Réinitialiser les activités et l'intervalle
         self.activity_cycle.clear()
         self.cycle_interval = interval
 
-        for activity in activities:
+        # Parser les activités
+        activity_list = activities.split(",")  # Diviser la chaîne par des virgules
+
+        for activity in activity_list:
             try:
                 activity_type, activity_text = activity.split(":", 1)
                 activity_map = {
@@ -166,6 +172,7 @@ class BotStatusManager(commands.Cog):
                 if activity_type.lower() not in activity_map:
                     raise ValueError
 
+                # Ajouter l'activité au cycle
                 self.activity_cycle.append(activity_map[activity_type.lower()](activity_text))
             except ValueError:
                 await interaction.response.send_message(
@@ -174,11 +181,12 @@ class BotStatusManager(commands.Cog):
                 )
                 return
 
+        # Mettre à jour le cycle si des activités valides sont définies
         if self.activity_cycle:
             self.activity_cycler.change_interval(seconds=self.cycle_interval)
             self.save_status_data()
             await interaction.response.send_message(
-                f"✅ Cycle d'activités défini avec un intervalle de {interval} secondes."
+                f"✅ Cycle d'activités défini avec un intervalle de {interval} secondes : {', '.join(activity_list)}."
             )
         else:
             await interaction.response.send_message("❌ Aucun cycle valide défini.", ephemeral=True)
