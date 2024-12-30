@@ -27,6 +27,7 @@ GENANCE_WORDS = {
 # Liste des mots à exclure
 EXCLUDED_WORDS = [
     "fleur",  # Exemple : empêche que "fleur" soit détecté comme "feur"
+    "roulette",
 ]
 
 # Substitutions possibles pour les lettres (par exemple "e" ↔ "3")
