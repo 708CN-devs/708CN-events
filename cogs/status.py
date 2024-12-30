@@ -102,19 +102,12 @@ class BotStatusManager(commands.Cog):
 
     @app_commands.command(name="setstatus", description="Change l'activité et le statut du bot.")
     async def set_status(self, interaction: discord.Interaction,
-                         activity_type: str,
-                         activity_text: str,
-                         status: str = "online"):
+                        activity_type: str = None,
+                        activity_text: str = None,
+                        status: str = "online"):
         """Change l'activité et le statut du bot."""
         if not await self.interaction_check(interaction):
             return
-
-        activity_map = {
-            "playing": discord.Game,
-            "listening": lambda text: discord.Activity(type=discord.ActivityType.listening, name=text),
-            "watching": lambda text: discord.Activity(type=discord.ActivityType.watching, name=text),
-            "competing": lambda text: discord.Activity(type=discord.ActivityType.competing, name=text),
-        }
 
         status_map = {
             "online": discord.Status.online,
@@ -123,23 +116,42 @@ class BotStatusManager(commands.Cog):
             "invisible": discord.Status.invisible,
         }
 
-        # Validation des types
-        if activity_type.lower() not in activity_map or status.lower() not in status_map:
-            await interaction.response.send_message("❌ Type ou statut invalide.", ephemeral=True)
+        # Vérification du statut
+        if status.lower() not in status_map:
+            await interaction.response.send_message("❌ Statut invalide.", ephemeral=True)
             return
 
-        # Définir l'activité et le statut
-        self.current_activity = activity_map[activity_type.lower()](activity_text)
         self.current_status = status_map[status.lower()]
 
-        # Mettre à jour le bot
+        # Si un type d'activité est défini, le texte devient obligatoire
+        if activity_type:
+            activity_map = {
+                "playing": discord.Game,
+                "listening": lambda text: discord.Activity(type=discord.ActivityType.listening, name=text),
+                "watching": lambda text: discord.Activity(type=discord.ActivityType.watching, name=text),
+                "competing": lambda text: discord.Activity(type=discord.ActivityType.competing, name=text),
+            }
+
+            if activity_type.lower() not in activity_map or not activity_text:
+                await interaction.response.send_message(
+                    "❌ Si un `activity_type` est défini, `activity_text` est obligatoire.",
+                    ephemeral=True
+                )
+                return
+
+            self.current_activity = activity_map[activity_type.lower()](activity_text)
+        else:
+            self.current_activity = None
+
+        # Met à jour le bot
         await self.bot.change_presence(activity=self.current_activity, status=self.current_status)
 
-        # Sauvegarder dans la base de données
+        # Sauvegarde dans MongoDB
         self.save_status_data()
 
         await interaction.response.send_message(
-            f"✅ Activité définie sur **{activity_type.capitalize()} {activity_text}** avec le statut **{status.capitalize()}**."
+            f"✅ Statut mis à jour : {status.capitalize()}."
+            + (f" Activité : {activity_type.capitalize()} {activity_text}." if self.current_activity else "")
         )
 
     @app_commands.command(name="setcycle", description="Alterner entre plusieurs activités à intervalles réguliers.")
