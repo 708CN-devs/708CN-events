@@ -22,7 +22,8 @@ GENANCE_WORDS = {
     "jdene": 10,
     "lette": 10,
     "païen": 5,
-    "apayan": 5
+    "apayan": 5,
+    "kawai": 3,
 }
 
 # Liste des mots à exclure
