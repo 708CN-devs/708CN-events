@@ -22,12 +22,14 @@ GENANCE_WORDS = {
     "jdene": 10,
     "lette": 10,
     "païen": 5,
+    "apayan": 5
 }
 
 # Liste des mots à exclure
 EXCLUDED_WORDS = [
     "fleur",  # Exemple : empêche que "fleur" soit détecté comme "feur"
     "roulette",
+    "toilette",
 ]
 
 # Substitutions possibles pour les lettres (par exemple "e" ↔ "3")
