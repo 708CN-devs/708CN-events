@@ -99,9 +99,9 @@ class EventsSystem(commands.Cog):
         
         if event_names:
             event_list = "\n".join(f"- {name}" for name in event_names)
-            await interaction.response.send_message(f"📜 **Événements de {member.mention}**:\n{event_list}", ephemeral=True)
+            await interaction.response.send_message(f"📜 **Événements de {member.mention}**:\n{event_list}", ephemeral=False)
         else:
-            await interaction.response.send_message(f"❌ {member.mention} n'a participé à aucun événement.", ephemeral=True)
+            await interaction.response.send_message(f"❌ {member.mention} n'a participé à aucun événement.", ephemeral=False)
 
 async def setup(bot):
     await bot.add_cog(EventsSystem(bot))
