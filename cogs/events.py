@@ -31,6 +31,11 @@ class EventsSystem(commands.Cog):
             logging.error(f"Erreur lors de la connexion à MongoDB : {e}")
             raise
     
+    async def autocomplete_events(self, interaction: discord.Interaction, current: str):
+        """Retourne la liste des événements existants pour l'auto-complétion."""
+        events = self.events_collection.find()
+        return [app_commands.Choice(name=event["name"], value=event["name"]) for event in events if current.lower() in event["name"].lower()]
+    
     @app_commands.command(name="event-add", description="Ajoute un nouvel événement organisé.")
     async def event_add(self, interaction: discord.Interaction, event_name: str):
         """Ajoute un événement dans la base de données."""
@@ -44,8 +49,25 @@ class EventsSystem(commands.Cog):
         
         self.events_collection.insert_one({"name": event_name})
         await interaction.response.send_message(f"✅ Événement **{event_name}** ajouté avec succès !", ephemeral=True)
-
+    
+    @app_commands.command(name="event-remove", description="Supprime un événement existant.")
+    @app_commands.autocomplete(event_name=autocomplete_events)
+    async def event_remove(self, interaction: discord.Interaction, event_name: str):
+        """Supprime un événement de la base de données."""
+        if interaction.user.id != OWNER_ID:
+            await interaction.response.send_message("⛔ Seul l'administrateur peut utiliser cette commande !", ephemeral=True)
+            return
+        
+        if not self.events_collection.find_one({"name": event_name}):
+            await interaction.response.send_message("⚠️ Cet événement n'existe pas !", ephemeral=True)
+            return
+        
+        self.events_collection.delete_one({"name": event_name})
+        self.participants_collection.delete_many({"event_name": event_name})
+        await interaction.response.send_message(f"✅ Événement **{event_name}** supprimé avec succès !", ephemeral=True)
+    
     @app_commands.command(name="event-define", description="Ajoute ou retire un utilisateur d'un événement existant.")
+    @app_commands.autocomplete(event_name=autocomplete_events)
     async def event_define(self, interaction: discord.Interaction, user: discord.Member, event_name: str):
         """Ajoute ou retire un utilisateur d'un événement."""
         if interaction.user.id != OWNER_ID:
