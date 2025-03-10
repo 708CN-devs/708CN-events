@@ -27,42 +27,6 @@ class AbsenceSystem(commands.Cog):
     
     @app_commands.command(name="absence", description="Déclare une absence.")
     async def absence(self, interaction: discord.Interaction):
-<<<<<<< HEAD
-        class AbsenceView(discord.ui.View):
-            def __init__(self, user):
-                super().__init__()
-                self.user = user
-                self.start_date = None
-                self.end_date = None
-                self.reason = None
-
-            @discord.ui.button(label="📅 Définir Date de Début", style=discord.ButtonStyle.primary)
-            async def set_start_date(self, interaction: discord.Interaction, button: discord.ui.Button):
-                await interaction.response.send_message("🗓️ Sélectionnez votre date de début via le menu déroulant.", ephemeral=True)
-
-            @discord.ui.button(label="📅 Définir Date de Fin", style=discord.ButtonStyle.primary)
-            async def set_end_date(self, interaction: discord.Interaction, button: discord.ui.Button):
-                await interaction.response.send_message("🗓️ Sélectionnez votre date de fin via le menu déroulant.", ephemeral=True)
-
-            @discord.ui.button(label="✏️ Saisir Raison", style=discord.ButtonStyle.secondary)
-            async def set_reason(self, interaction: discord.Interaction, button: discord.ui.Button):
-                await interaction.response.send_message("✍️ Veuillez entrer la raison de votre absence.", ephemeral=True)
-
-            @discord.ui.button(label="✅ Confirmer", style=discord.ButtonStyle.success)
-            async def confirm_absence(self, interaction: discord.Interaction, button: discord.ui.Button):
-                if not self.start_date or not self.end_date or not self.reason:
-                    await interaction.response.send_message("⚠️ Merci de remplir tous les champs avant de confirmer.", ephemeral=True)
-                    return
-                duration = (self.end_date - self.start_date).days
-                channel_data = interaction.client.get_cog("AbsenceSystem").channel_collection.find_one({})
-                if not channel_data:
-                    await interaction.response.send_message("⚠️ Aucun salon d'absence défini.", ephemeral=True)
-                    return
-                channel = interaction.guild.get_channel(channel_data["channel_id"])
-                message = await channel.send(f"**Absence de:** {self.user.mention}\n**Durée:** {duration} jours ({self.start_date.date()} - {self.end_date.date()})\n**Raison:** {self.reason}")
-                interaction.client.get_cog("AbsenceSystem").absence_collection.insert_one({"user_id": self.user.id, "start": self.start_date, "end": self.end_date, "message_id": message.id})
-                await interaction.response.send_message("✅ Absence enregistrée avec succès !", ephemeral=True)
-=======
         class AbsenceModal(discord.ui.Modal, title="Déclarer une absence"):
             start_date = discord.ui.TextInput(label="Date de début (AAAA-MM-JJ)")
             end_date = discord.ui.TextInput(label="Date de fin (AAAA-MM-JJ)")
@@ -86,9 +50,8 @@ class AbsenceSystem(commands.Cog):
                     await interaction.response.send_message("✅ Absence enregistrée avec succès !", ephemeral=True)
                 except ValueError:
                     await interaction.response.send_message("⚠️ Format de date invalide. Utilisez AAAA-MM-JJ.", ephemeral=True)
->>>>>>> parent of 8697cda (Update absences.py)
         
-        await interaction.response.send_message("Déclaration d'absence : veuillez sélectionner les informations.", view=AbsenceView(interaction.user), ephemeral=True)
+        await interaction.response.send_modal(AbsenceModal())
     
     @app_commands.command(name="absence-remove", description="Supprime une absence enregistrée.")
     async def remove_absence(self, interaction: discord.Interaction, user: discord.Member = None):
