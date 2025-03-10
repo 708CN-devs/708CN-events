@@ -49,7 +49,7 @@ class AbsenceSystem(commands.Cog):
                         await interaction.response.send_message("⚠️ Aucun salon d'absence défini.", ephemeral=True)
                         return
                     channel = interaction.guild.get_channel(channel_data["channel_id"])
-                    message = await channel.send(f"**Absence de:** {interaction.user.mention}\n**Durée:** {duration} jours ({start.date()} - {end.date()})\n**Raison:** {self.reason.value}")
+                    message = await channel.send(f"**Absence de:** {interaction.user.mention}\n**Durée:** {duration} jours (`{start.date()} -> {end.date()}`)\n**Raison:** {self.reason.value}")
                     interaction.client.get_cog("AbsenceSystem").absence_collection.insert_one({"user_id": interaction.user.id, "start": start, "end": end, "message_id": message.id})
                     await interaction.response.send_message("✅ Absence enregistrée avec succès !", ephemeral=True)
                 except ValueError:
