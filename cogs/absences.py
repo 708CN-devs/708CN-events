@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
-from pymongo import MongoClient #type:ignore
+from pymongo import MongoClient
 import os
 from datetime import datetime, timedelta
 
@@ -28,8 +28,8 @@ class AbsenceSystem(commands.Cog):
     @app_commands.command(name="absence", description="Déclare une absence.")
     async def absence(self, interaction: discord.Interaction):
         class AbsenceModal(discord.ui.Modal, title="Déclarer une absence"):
-            start_date = discord.ui.TextInput(label="Date de début (AAAA-MM-JJ)")
-            end_date = discord.ui.TextInput(label="Date de fin (AAAA-MM-JJ)")
+            start_date = discord.ui.TextInput(label="Date de début", placeholder="Sélectionnez une date", style=discord.TextStyle.short)
+            end_date = discord.ui.TextInput(label="Date de fin", placeholder="Sélectionnez une date", style=discord.TextStyle.short)
             reason = discord.ui.TextInput(label="Raison", style=discord.TextStyle.long)
             
             async def on_submit(self, interaction: discord.Interaction):
@@ -71,20 +71,21 @@ class AbsenceSystem(commands.Cog):
         now = datetime.now()
         expired_absences = self.absence_collection.find({"end": {"$lte": now}})
         for absence in expired_absences:
-            guild = self.bot.get_guild(absence["guild_id"])
-            channel_data = self.channel_collection.find_one({})
-            if channel_data:
-                channel = guild.get_channel(channel_data["channel_id"])
-                try:
-                    message = await channel.fetch_message(absence["message_id"])
-                    await message.delete()
-                except discord.NotFound:
-                    pass
-                user = guild.get_member(absence["user_id"])
-                if user:
-                    reminder_msg = await channel.send(f"{user.mention} ton absence est terminée ! Confirme ton retour avec ✅ ou ❌.")
-                    await reminder_msg.add_reaction("✅")
-                    await reminder_msg.add_reaction("❌")
+            guild = self.bot.get_guild(absence.get("guild_id"))
+            if guild:
+                channel_data = self.channel_collection.find_one({})
+                if channel_data:
+                    channel = guild.get_channel(channel_data["channel_id"])
+                    try:
+                        message = await channel.fetch_message(absence["message_id"])
+                        await message.delete()
+                    except discord.NotFound:
+                        pass
+                    user = guild.get_member(absence["user_id"])
+                    if user:
+                        reminder_msg = await channel.send(f"{user.mention} ton absence est terminée ! Confirme ton retour avec ✅ ou ❌.")
+                        await reminder_msg.add_reaction("✅")
+                        await reminder_msg.add_reaction("❌")
             self.absence_collection.delete_one({"_id": absence["_id"]})
 
     @check_absences.before_loop
