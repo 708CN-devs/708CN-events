@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
-from pymongo import MongoClient
+from pymongo import MongoClient #type:ignore
 import os
 from datetime import datetime, timedelta
 
@@ -27,6 +27,7 @@ class AbsenceSystem(commands.Cog):
     
     @app_commands.command(name="absence", description="Déclare une absence.")
     async def absence(self, interaction: discord.Interaction):
+<<<<<<< HEAD
         class AbsenceView(discord.ui.View):
             def __init__(self, user):
                 super().__init__()
@@ -61,6 +62,31 @@ class AbsenceSystem(commands.Cog):
                 message = await channel.send(f"**Absence de:** {self.user.mention}\n**Durée:** {duration} jours ({self.start_date.date()} - {self.end_date.date()})\n**Raison:** {self.reason}")
                 interaction.client.get_cog("AbsenceSystem").absence_collection.insert_one({"user_id": self.user.id, "start": self.start_date, "end": self.end_date, "message_id": message.id})
                 await interaction.response.send_message("✅ Absence enregistrée avec succès !", ephemeral=True)
+=======
+        class AbsenceModal(discord.ui.Modal, title="Déclarer une absence"):
+            start_date = discord.ui.TextInput(label="Date de début (AAAA-MM-JJ)")
+            end_date = discord.ui.TextInput(label="Date de fin (AAAA-MM-JJ)")
+            reason = discord.ui.TextInput(label="Raison", style=discord.TextStyle.long)
+            
+            async def on_submit(self, interaction: discord.Interaction):
+                try:
+                    start = datetime.strptime(self.start_date.value, "%Y-%m-%d")
+                    end = datetime.strptime(self.end_date.value, "%Y-%m-%d")
+                    if end < start:
+                        await interaction.response.send_message("⚠️ La date de fin doit être après la date de début !", ephemeral=True)
+                        return
+                    duration = (end - start).days
+                    channel_data = interaction.client.get_cog("AbsenceSystem").channel_collection.find_one({})
+                    if not channel_data:
+                        await interaction.response.send_message("⚠️ Aucun salon d'absence défini.", ephemeral=True)
+                        return
+                    channel = interaction.guild.get_channel(channel_data["channel_id"])
+                    message = await channel.send(f"**Absence de:** {interaction.user.mention}\n**Durée:** {duration} jours ({start.date()} - {end.date()})\n**Raison:** {self.reason.value}")
+                    interaction.client.get_cog("AbsenceSystem").absence_collection.insert_one({"user_id": interaction.user.id, "start": start, "end": end, "message_id": message.id})
+                    await interaction.response.send_message("✅ Absence enregistrée avec succès !", ephemeral=True)
+                except ValueError:
+                    await interaction.response.send_message("⚠️ Format de date invalide. Utilisez AAAA-MM-JJ.", ephemeral=True)
+>>>>>>> parent of 8697cda (Update absences.py)
         
         await interaction.response.send_message("Déclaration d'absence : veuillez sélectionner les informations.", view=AbsenceView(interaction.user), ephemeral=True)
     
