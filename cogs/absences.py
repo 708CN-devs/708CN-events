@@ -27,15 +27,19 @@ class AbsenceSystem(commands.Cog):
     
     @app_commands.command(name="absence", description="Déclare une absence.")
     async def absence(self, interaction: discord.Interaction):
+        today = datetime.now()
+        default_start_date = today.strftime("%d-%m-%Y")
+        default_end_date = today.strftime("%d-%m-") + str(today.year)
+
         class AbsenceModal(discord.ui.Modal, title="Déclarer une absence"):
-            start_date = discord.ui.TextInput(label="Date de début (AAAA-MM-JJ)")
-            end_date = discord.ui.TextInput(label="Date de fin (AAAA-MM-JJ)")
+            start_date = discord.ui.TextInput(label="Date de début (JJ-MM-AAAA)", default=default_start_date)
+            end_date = discord.ui.TextInput(label="Date de fin (JJ-MM-AAAA)", default=default_end_date)
             reason = discord.ui.TextInput(label="Raison", style=discord.TextStyle.long)
             
             async def on_submit(self, interaction: discord.Interaction):
                 try:
-                    start = datetime.strptime(self.start_date.value, "%Y-%m-%d")
-                    end = datetime.strptime(self.end_date.value, "%Y-%m-%d")
+                    start = datetime.strptime(self.start_date.value, "%d-%m-%Y")
+                    end = datetime.strptime(self.end_date.value, "%d-%m-%Y")
                     if end < start:
                         await interaction.response.send_message("⚠️ La date de fin doit être après la date de début !", ephemeral=True)
                         return
@@ -49,7 +53,7 @@ class AbsenceSystem(commands.Cog):
                     interaction.client.get_cog("AbsenceSystem").absence_collection.insert_one({"user_id": interaction.user.id, "start": start, "end": end, "message_id": message.id})
                     await interaction.response.send_message("✅ Absence enregistrée avec succès !", ephemeral=True)
                 except ValueError:
-                    await interaction.response.send_message("⚠️ Format de date invalide. Utilisez AAAA-MM-JJ.", ephemeral=True)
+                    await interaction.response.send_message("⚠️ Format de date invalide. Utilisez JJ-MM-AAAA.", ephemeral=True)
         
         await interaction.response.send_modal(AbsenceModal())
     
